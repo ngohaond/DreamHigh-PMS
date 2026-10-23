@@ -1,5 +1,5 @@
-import React, { useState, useId } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useId, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { Button } from '../../design-system/components/ui/Button';
 import { Card } from '../../design-system/components/ui/Card';
@@ -10,8 +10,8 @@ export interface GradeInputModalProps {
   isOpen: boolean;
   onClose: () => void;
   exam: Exam | null;
-  students: Array<{ id: string; fullName: string; studentCode: string }>;
-  existingGrades?: Array<{ studentId: string; score: number; feedback?: string }>;
+  students: Array<{ id: number; fullName: string; studentCode: string }>;
+  existingGrades?: Array<{ studentId: number; score: number; remarks?: string }>;
 }
 
 export const GradeInputModal: React.FC<GradeInputModalProps> = ({
@@ -24,13 +24,13 @@ export const GradeInputModal: React.FC<GradeInputModalProps> = ({
   const titleId = useId();
   const queryClient = useQueryClient();
 
-  const [grades, setGrades] = useState<Record<string, { score: string; feedback: string }>>(() => {
-    const initial: Record<string, { score: string; feedback: string }> = {};
+  const [grades, setGrades] = useState<Record<number, { score: string; remarks: string }>>(() => {
+    const initial: Record<number, { score: string; remarks: string }> = {};
     students.forEach((s) => {
       const existing = existingGrades.find((g) => g.studentId === s.id);
       initial[s.id] = {
         score: existing?.score?.toString() || '',
-        feedback: existing?.feedback || '',
+        remarks: existing?.remarks || '',
       };
     });
     return initial;
@@ -39,27 +39,57 @@ export const GradeInputModal: React.FC<GradeInputModalProps> = ({
   const mutation = useMutation({
     mutationFn: (gradeRecords: GradeRecord[]) => {
       if (!exam) throw new Error('No exam selected');
-      return submitBulkGrades(exam.id, { examId: exam.id, grades: gradeRecords });
+      return submitBulkGrades(exam.id, { grades: gradeRecords });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['class-exams', exam?.classCode] });
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['class-exams', exam?.classId] });
+
+      // Show low score alerts if any
+      if (response.data.lowScoreAlerts && response.data.lowScoreAlerts.length > 0) {
+        const alertMessages = response.data.lowScoreAlerts.map(
+          (alert) => `Học viên ID ${alert.studentId}: ${alert.score} điểm`
+        );
+        alert(
+          `Cảnh báo: Có ${response.data.lowScoreAlerts.length} học viên đạt điểm thấp (< 50% điểm tối đa):\n\n${alertMessages.join('\n')}`
+        );
+      }
+
       onClose();
+    },
+    onError: (error) => {
+      console.error('Failed to submit grades:', error);
+      alert('Không thể lưu điểm. Vui lòng thử lại.');
     },
   });
 
+  // Reset grades when modal opens with new exam
+  useEffect(() => {
+    if (isOpen && exam) {
+      const initial: Record<number, { score: string; remarks: string }> = {};
+      students.forEach((s) => {
+        const existing = existingGrades.find((g) => g.studentId === s.id);
+        initial[s.id] = {
+          score: existing?.score?.toString() || '',
+          remarks: existing?.remarks || '',
+        };
+      });
+      setGrades(initial);
+    }
+  }, [isOpen, exam, students, existingGrades]);
+
   if (!isOpen || !exam) return null;
 
-  const updateScore = (studentId: string, score: string) => {
+  const updateScore = (studentId: number, score: string) => {
     setGrades((prev) => ({
       ...prev,
       [studentId]: { ...prev[studentId], score },
     }));
   };
 
-  const updateFeedback = (studentId: string, feedback: string) => {
+  const updateRemarks = (studentId: number, remarks: string) => {
     setGrades((prev) => ({
       ...prev,
-      [studentId]: { ...prev[studentId], feedback },
+      [studentId]: { ...prev[studentId], remarks },
     }));
   };
 
@@ -69,10 +99,17 @@ export const GradeInputModal: React.FC<GradeInputModalProps> = ({
         const g = grades[s.id];
         const score = parseFloat(g.score);
         if (isNaN(score)) return null;
+
+        // Validate score range
+        if (score < 0 || score > exam.maxScore) {
+          alert(`Điểm của ${s.fullName} phải từ 0 đến ${exam.maxScore}`);
+          return null;
+        }
+
         return {
           studentId: s.id,
           score,
-          feedback: g.feedback.trim() || undefined,
+          remarks: g.remarks.trim() || undefined,
         };
       })
       .filter((g): g is GradeRecord => g !== null);
@@ -87,7 +124,7 @@ export const GradeInputModal: React.FC<GradeInputModalProps> = ({
 
   const filledCount = students.filter((s) => {
     const score = parseFloat(grades[s.id]?.score || '');
-    return !isNaN(score);
+    return !isNaN(score) && score >= 0 && score <= exam.maxScore;
   }).length;
 
   const avgScore =
@@ -112,7 +149,8 @@ export const GradeInputModal: React.FC<GradeInputModalProps> = ({
               Nhập điểm
             </h2>
             <p className="mt-1 font-body text-xs font-semibold text-gold">
-              {exam.examName} · Điểm tối đa: {exam.maxScore}
+              {exam.title} · Điểm tối đa: {exam.maxScore}
+              {exam.weightPercent !== undefined && ` · Trọng số: ${exam.weightPercent}%`}
             </p>
           </div>
           <button
@@ -125,70 +163,90 @@ export const GradeInputModal: React.FC<GradeInputModalProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 border-b border-midnight/10 bg-bg p-4 sm:gap-4 sm:p-6">
-          <StatBox label="Đã nhập điểm" value={filledCount} total={students.length} variant="info" />
-          <StatBox label="Điểm trung bình" value={avgScore.toFixed(1)} variant="success" />
-          <StatBox label="Trọng số" value={`${exam.weight}%`} variant="warning" />
+        {/* Statistics */}
+        <div className="grid grid-cols-3 gap-4 border-b border-midnight/10 bg-midnight/5 px-6 py-4">
+          <div>
+            <span className="font-label uppercase text-[10px] tracking-widest text-midnight/40">
+              Đã nhập
+            </span>
+            <p className="font-headline italic text-2xl text-midnight">
+              {filledCount}/{students.length}
+            </p>
+          </div>
+          <div>
+            <span className="font-label uppercase text-[10px] tracking-widest text-midnight/40">
+              Điểm trung bình
+            </span>
+            <p className="font-headline italic text-2xl text-midnight">
+              {avgScore.toFixed(1)}
+            </p>
+          </div>
+          <div>
+            <span className="font-label uppercase text-[10px] tracking-widest text-midnight/40">
+              Ngày thi
+            </span>
+            <p className="text-sm text-midnight/80">
+              {new Date(exam.scheduledAt).toLocaleDateString('vi-VN')}
+            </p>
+          </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-midnight/10">
-                <th className="w-12 px-3 py-3 text-center font-label text-[10px] font-semibold uppercase tracking-widest text-gold sm:px-4">
-                  STT
+        {/* Grades Table */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <table className="w-full">
+            <thead className="sticky top-0 bg-white">
+              <tr className="border-b-2 border-midnight/20">
+                <th className="pb-3 text-left font-label text-xs uppercase tracking-widest text-midnight/60">
+                  Mã HV
                 </th>
-                <th className="px-3 py-3 font-label text-[10px] font-semibold uppercase tracking-widest text-gold sm:px-4">
-                  Học viên
+                <th className="pb-3 text-left font-label text-xs uppercase tracking-widest text-midnight/60">
+                  Họ tên
                 </th>
-                <th className="w-32 px-3 py-3 font-label text-[10px] font-semibold uppercase tracking-widest text-gold sm:px-4">
+                <th className="w-32 pb-3 text-left font-label text-xs uppercase tracking-widest text-midnight/60">
                   Điểm
                 </th>
-                <th className="px-3 py-3 font-label text-[10px] font-semibold uppercase tracking-widest text-gold sm:px-4">
-                  Nhận xét
+                <th className="pb-3 text-left font-label text-xs uppercase tracking-widest text-midnight/60">
+                  Ghi chú
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-midnight/5">
-              {students.map((student, index) => {
-                const g = grades[student.id];
-                const score = parseFloat(g.score);
+            <tbody>
+              {students.map((student) => {
+                const score = parseFloat(grades[student.id]?.score || '');
                 const isValid = !isNaN(score) && score >= 0 && score <= exam.maxScore;
-                const showWarning = g.score !== '' && !isValid;
+                const isLowScore = isValid && score < exam.maxScore * 0.5;
 
                 return (
-                  <tr key={student.id} className="transition-colors hover:bg-midnight/[0.02]">
-                    <td className="px-3 py-4 text-center font-body text-xs font-semibold text-midnight/40 sm:px-4">
-                      {index + 1}
+                  <tr key={student.id} className="border-b border-midnight/5">
+                    <td className="py-3 font-label text-xs tracking-widest text-midnight/60">
+                      {student.studentCode}
                     </td>
-                    <td className="px-3 py-4 sm:px-4">
-                      <p className="font-body text-sm font-semibold text-midnight">{student.fullName}</p>
-                      <p className="font-mono text-[10px] text-midnight/40">{student.studentCode}</p>
-                    </td>
-                    <td className="px-3 py-4 sm:px-4">
+                    <td className="py-3 text-midnight">{student.fullName}</td>
+                    <td className="py-3">
                       <input
                         type="number"
-                        step="0.5"
-                        min="0"
+                        min={0}
                         max={exam.maxScore}
-                        className={`input-field h-10 w-full text-center font-semibold ${
-                          showWarning ? 'border-error focus:border-error' : ''
-                        }`}
-                        placeholder="—"
-                        value={g.score}
+                        step={0.5}
+                        value={grades[student.id]?.score || ''}
                         onChange={(e) => updateScore(student.id, e.target.value)}
+                        className={`w-full rounded-md border px-3 py-2 text-center font-headline italic text-lg transition-all focus:outline-none focus:ring-2 ${
+                          isLowScore
+                            ? 'border-error/30 bg-error/5 text-error focus:ring-error/30'
+                            : isValid
+                            ? 'border-success/30 bg-success/5 text-success focus:ring-success/30'
+                            : 'border-midnight/20 bg-white text-midnight focus:ring-gold/30'
+                        }`}
+                        placeholder="0"
                       />
-                      {showWarning && (
-                        <p className="text-[9px] text-error mt-1">0-{exam.maxScore}</p>
-                      )}
                     </td>
-                    <td className="px-3 py-4 sm:px-4">
+                    <td className="py-3">
                       <input
                         type="text"
-                        className="input-field h-10 text-xs"
-                        placeholder="Nhận xét…"
-                        value={g.feedback}
-                        onChange={(e) => updateFeedback(student.id, e.target.value)}
+                        value={grades[student.id]?.remarks || ''}
+                        onChange={(e) => updateRemarks(student.id, e.target.value)}
+                        className="w-full rounded-md border border-midnight/20 bg-white px-3 py-2 text-sm transition-all focus:border-gold/50 focus:outline-none focus:ring-2 focus:ring-gold/20"
+                        placeholder="Ghi chú (tùy chọn)"
                       />
                     </td>
                   </tr>
@@ -198,67 +256,21 @@ export const GradeInputModal: React.FC<GradeInputModalProps> = ({
           </table>
         </div>
 
-        <div className="flex gap-3 border-t border-midnight/10 bg-bg p-6">
-          <Button type="button" variant="ghost" className="flex-1" onClick={onClose} disabled={mutation.isPending}>
-            Huỷ
-          </Button>
-          <Button
-            type="button"
-            className="flex-1 shadow-md"
-            onClick={handleSave}
-            disabled={mutation.isPending || filledCount === 0}
-          >
-            {mutation.isPending ? 'Đang lưu...' : `Lưu điểm (${filledCount})`}
-          </Button>
+        {/* Footer */}
+        <div className="flex justify-between border-t border-midnight/10 bg-midnight/5 px-6 py-4">
+          <p className="text-xs text-midnight/40">
+            Điểm dưới 50% ({exam.maxScore * 0.5}) sẽ được đánh dấu cảnh báo
+          </p>
+          <div className="flex gap-3">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Hủy
+            </Button>
+            <Button type="button" variant="primary" onClick={handleSave} disabled={mutation.isPending}>
+              {mutation.isPending ? 'Đang lưu...' : `Lưu điểm (${filledCount})`}
+            </Button>
+          </div>
         </div>
       </Card>
-    </div>
-  );
-};
-
-type StatVariant = 'success' | 'error' | 'info' | 'warning';
-
-const statStyles: Record<StatVariant, { box: string; value: string; label: string }> = {
-  success: {
-    box: 'border-success/20 bg-success-bg',
-    value: 'text-success',
-    label: 'text-midnight/50',
-  },
-  error: {
-    box: 'border-error/20 bg-error-bg',
-    value: 'text-error',
-    label: 'text-midnight/50',
-  },
-  info: {
-    box: 'border-info/20 bg-info-bg',
-    value: 'text-info',
-    label: 'text-midnight/50',
-  },
-  warning: {
-    box: 'border-warning/20 bg-warning-bg',
-    value: 'text-warning',
-    label: 'text-midnight/50',
-  },
-};
-
-const StatBox: React.FC<{ label: string; value: string | number; total?: number; variant: StatVariant }> = ({
-  label,
-  value,
-  total,
-  variant,
-}) => {
-  const s = statStyles[variant];
-  return (
-    <div className={`flex flex-col items-center justify-center rounded-xl border p-3 shadow-sm ${s.box}`}>
-      <span className={`font-body text-xl font-semibold ${s.value}`}>
-        {value}
-        {total !== undefined && <span className="text-sm text-midnight/30 ml-1">/ {total}</span>}
-      </span>
-      <span
-        className={`mt-1 text-center font-label text-[9px] font-semibold uppercase tracking-tighter ${s.label}`}
-      >
-        {label}
-      </span>
     </div>
   );
 };

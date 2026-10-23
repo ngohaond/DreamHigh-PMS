@@ -81,57 +81,72 @@ export interface ResolveAlertRequest {
 }
 
 // ========== Grades & Exams (FR15) ==========
+// API: GET /api/classes/:id/exams, POST /api/exams, POST /api/exams/:id/grades/bulk
+// Authorization: JWT Bearer token, RBAC enforced
 
 export interface Exam {
-  id: string;
-  classCode: string;
-  examName: string;
-  examType: 'MIDTERM' | 'FINAL' | 'QUIZ' | 'ASSIGNMENT';
+  id: number;
+  classId: number;
+  title: string;
+  examType?: string; // Optional: QUIZ, MIDTERM, FINAL, etc.
+  scheduledAt: string; // ISO 8601 required
   maxScore: number;
-  weight: number; // percentage of final grade
-  examDate?: string;
+  weightPercent?: number; // Optional: percentage of final grade
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateExamRequest {
-  classCode: string;
-  examName: string;
-  examType: 'MIDTERM' | 'FINAL' | 'QUIZ' | 'ASSIGNMENT';
+  classId: number;
+  title: string;
+  examType?: string;
+  scheduledAt: string; // ISO 8601 required
   maxScore: number;
-  weight: number;
-  examDate?: string;
+  weightPercent?: number;
 }
 
 export interface GradeRecord {
-  studentId: string;
+  studentId: number;
   score: number;
-  feedback?: string;
+  gradeLabel?: string; // e.g., "A", "B+", "Pass"
+  remarks?: string; // Optional notes/feedback
 }
 
 export interface BulkGradesRequest {
-  examId: string;
   grades: GradeRecord[];
 }
 
+export interface LowScoreAlert {
+  studentId: number;
+  score: number;
+}
+
 export interface BulkGradesResponse {
-  success: boolean;
+  statusCode: number;
   message: string;
-  savedCount: number;
+  data: {
+    upsertedCount: number;
+    lowScoreAlerts?: LowScoreAlert[];
+  };
 }
 
 export interface StudentGrade {
-  id: string;
-  examId: string;
-  studentId: string;
-  studentName: string;
-  studentCode: string;
+  id: number;
+  examId: number;
+  studentId: number;
   score: number;
-  feedback?: string;
+  gradeLabel?: string;
+  remarks?: string;
   gradedAt: string;
 }
 
 export interface ClassExamsResponse {
-  exams: (Exam & { grades?: StudentGrade[] })[];
-  total: number;
+  statusCode: number;
+  message: string;
+  data: Exam[];
+  meta: {
+    total: number;
+    limit?: number;
+    offset?: number;
+  };
 }

@@ -6,16 +6,16 @@ import { getClassExams } from '../../services/phaseCApi';
 import type { Exam } from '../../types/phaseC';
 
 interface ResultsTabProps {
-  classCode: string;
+  classId: number; // Changed from classCode
   onCreateExam: () => void;
   onViewExam: (exam: Exam) => void;
 }
 
-export const ResultsTab: React.FC<ResultsTabProps> = ({ classCode, onCreateExam, onViewExam }) => {
+export const ResultsTab: React.FC<ResultsTabProps> = ({ classId, onCreateExam, onViewExam }) => {
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['class-exams', classCode],
-    queryFn: () => getClassExams(classCode),
-    enabled: !!classCode,
+    queryKey: ['class-exams', classId],
+    queryFn: () => getClassExams(classId),
+    enabled: !!classId,
   });
 
   if (isLoading) {
@@ -36,20 +36,28 @@ export const ResultsTab: React.FC<ResultsTabProps> = ({ classCode, onCreateExam,
     );
   }
 
-  const exams = data?.exams || [];
+  const exams = data?.data || [];
 
-  const examTypeLabels: Record<Exam['examType'], string> = {
-    MIDTERM: 'Giữa kỳ',
-    FINAL: 'Cuối kỳ',
-    QUIZ: 'Kiểm tra',
-    ASSIGNMENT: 'Bài tập',
+  const getExamTypeLabel = (type?: string): string => {
+    if (!type) return 'Khác';
+    const labels: Record<string, string> = {
+      MIDTERM: 'Giữa kỳ',
+      FINAL: 'Cuối kỳ',
+      QUIZ: 'Kiểm tra',
+      ASSIGNMENT: 'Bài tập',
+    };
+    return labels[type.toUpperCase()] || type;
   };
 
-  const examTypeBadgeColors: Record<Exam['examType'], string> = {
-    MIDTERM: 'bg-warning/10 text-warning border-warning/20',
-    FINAL: 'bg-error/10 text-error border-error/20',
-    QUIZ: 'bg-info/10 text-info border-info/20',
-    ASSIGNMENT: 'bg-success/10 text-success border-success/20',
+  const getExamTypeBadgeColor = (type?: string): string => {
+    if (!type) return 'bg-midnight/10 text-midnight/60 border-midnight/20';
+    const colors: Record<string, string> = {
+      MIDTERM: 'bg-warning/10 text-warning border-warning/20',
+      FINAL: 'bg-error/10 text-error border-error/20',
+      QUIZ: 'bg-info/10 text-info border-info/20',
+      ASSIGNMENT: 'bg-success/10 text-success border-success/20',
+    };
+    return colors[type.toUpperCase()] || 'bg-midnight/10 text-midnight/60 border-midnight/20';
   };
 
   return (
@@ -85,8 +93,7 @@ export const ResultsTab: React.FC<ResultsTabProps> = ({ classCode, onCreateExam,
       ) : (
         <div className="grid grid-cols-1 gap-6">
           {exams.map((exam) => {
-            const gradedCount = exam.grades?.length || 0;
-            const badgeColor = examTypeBadgeColors[exam.examType];
+            const badgeColor = getExamTypeBadgeColor(exam.examType);
 
             return (
               <Card
@@ -98,62 +105,58 @@ export const ResultsTab: React.FC<ResultsTabProps> = ({ classCode, onCreateExam,
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                       <h3 className="font-headline italic text-2xl text-midnight">
-                        {exam.examName}
+                        {exam.title}
                       </h3>
                       <span
-                        className={`font-label uppercase text-[9px] tracking-widest px-3 py-1 rounded-full border ${badgeColor}`}
+                        className={`font-label text-xs tracking-widest px-3 py-1 rounded-full border ${badgeColor}`}
                       >
-                        {examTypeLabels[exam.examType]}
+                        {getExamTypeLabel(exam.examType)}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-4 gap-6 mt-4">
                       <div>
-                        <span className="font-label uppercase text-[9px] tracking-widest text-midnight/40">
+                        <span className="font-label uppercase text-[10px] tracking-widest text-midnight/40">
                           Điểm tối đa
                         </span>
-                        <p className="font-body text-lg font-semibold text-midnight mt-1">
+                        <p className="font-headline italic text-xl text-midnight">
                           {exam.maxScore}
                         </p>
                       </div>
+                      {exam.weightPercent !== undefined && (
+                        <div>
+                          <span className="font-label uppercase text-[10px] tracking-widest text-midnight/40">
+                            Trọng số
+                          </span>
+                          <p className="font-headline italic text-xl text-midnight">
+                            {exam.weightPercent}%
+                          </p>
+                        </div>
+                      )}
                       <div>
-                        <span className="font-label uppercase text-[9px] tracking-widest text-midnight/40">
-                          Trọng số
-                        </span>
-                        <p className="font-body text-lg font-semibold text-midnight mt-1">
-                          {exam.weight}%
-                        </p>
-                      </div>
-                      <div>
-                        <span className="font-label uppercase text-[9px] tracking-widest text-midnight/40">
+                        <span className="font-label uppercase text-[10px] tracking-widest text-midnight/40">
                           Ngày thi
                         </span>
-                        <p className="font-body text-sm text-midnight mt-1">
-                          {exam.examDate
-                            ? new Date(exam.examDate).toLocaleDateString('vi-VN')
-                            : 'Chưa xác định'}
+                        <p className="text-sm text-midnight/80">
+                          {new Date(exam.scheduledAt).toLocaleDateString('vi-VN')}
                         </p>
                       </div>
                       <div>
-                        <span className="font-label uppercase text-[9px] tracking-widest text-midnight/40">
-                          Đã nhập điểm
+                        <span className="font-label uppercase text-[10px] tracking-widest text-midnight/40">
+                          Tạo lúc
                         </span>
-                        <p className="font-body text-lg font-semibold text-gold mt-1">
-                          {gradedCount} học viên
+                        <p className="text-sm text-midnight/80">
+                          {new Date(exam.createdAt).toLocaleDateString('vi-VN')}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <button
-                    className="p-3 rounded-xl bg-midnight/5 hover:bg-gold/10 transition-colors text-midnight/40 hover:text-gold"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onViewExam(exam);
-                    }}
-                  >
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
+                  <div className="ml-6 flex flex-col items-end">
+                    <span className="material-symbols-outlined text-gold text-4xl">
+                      chevron_right
+                    </span>
+                  </div>
                 </div>
               </Card>
             );

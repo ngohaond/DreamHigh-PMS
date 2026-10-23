@@ -10,34 +10,34 @@ import type { CreateExamRequest } from '../../types/phaseC';
 export interface CreateExamModalProps {
   isOpen: boolean;
   onClose: () => void;
-  classCode: string;
+  classId: number; // Changed from classCode
 }
 
-export const CreateExamModal: React.FC<CreateExamModalProps> = ({ isOpen, onClose, classCode }) => {
+export const CreateExamModal: React.FC<CreateExamModalProps> = ({ isOpen, onClose, classId }) => {
   const titleId = useId();
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState<CreateExamRequest>({
-    classCode,
-    examName: '',
+    classId,
+    title: '',
     examType: 'QUIZ',
     maxScore: 10,
-    weight: 10,
-    examDate: undefined,
+    weightPercent: 10,
+    scheduledAt: '', // ISO 8601 required
   });
 
   const mutation = useMutation({
     mutationFn: createExam,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['class-exams', classCode] });
+      queryClient.invalidateQueries({ queryKey: ['class-exams', classId] });
       onClose();
       setFormData({
-        classCode,
-        examName: '',
+        classId,
+        title: '',
         examType: 'QUIZ',
         maxScore: 10,
-        weight: 10,
-        examDate: undefined,
+        weightPercent: 10,
+        scheduledAt: '',
       });
     },
   });
@@ -46,11 +46,22 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({ isOpen, onClos
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.examName.trim()) {
+    if (!formData.title.trim()) {
       alert('Vui lòng nhập tên đợt đánh giá');
       return;
     }
-    mutation.mutate(formData);
+    if (!formData.scheduledAt) {
+      alert('Vui lòng chọn ngày thi');
+      return;
+    }
+
+    // Convert date input to ISO 8601
+    const scheduledAt = new Date(formData.scheduledAt).toISOString();
+
+    mutation.mutate({
+      ...formData,
+      scheduledAt,
+    });
   };
 
   const examTypeOptions = [
@@ -92,27 +103,29 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({ isOpen, onClos
             <Input
               label="Tên đợt đánh giá"
               placeholder="Ví dụ: Kiểm tra Unit 1-3"
-              value={formData.examName}
-              onChange={(e) => setFormData({ ...formData, examName: e.target.value })}
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
             />
           </div>
 
           <div>
-            <label className="input-label">Loại đánh giá</label>
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              {examTypeOptions.map((opt) => (
+            <label className="mb-2 block font-label text-xs uppercase tracking-widest text-midnight/60">
+              Loại đánh giá
+            </label>
+            <div className="grid grid-cols-4 gap-3">
+              {examTypeOptions.map((option) => (
                 <button
-                  key={opt.value}
+                  key={option.value}
                   type="button"
-                  onClick={() => setFormData({ ...formData, examType: opt.value })}
-                  className={`p-4 rounded-xl border-2 transition-all font-label uppercase text-xs tracking-wider ${
-                    formData.examType === opt.value
-                      ? 'border-gold bg-gold/5 text-midnight'
-                      : 'border-midnight/10 bg-white hover:border-gold/30'
+                  onClick={() => setFormData({ ...formData, examType: option.value })}
+                  className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all ${
+                    formData.examType === option.value
+                      ? 'border-gold bg-gold/10 text-midnight'
+                      : 'border-midnight/10 bg-white text-midnight/60 hover:border-midnight/30'
                   }`}
                 >
-                  {opt.label}
+                  {option.label}
                 </button>
               ))}
             </div>
@@ -121,44 +134,49 @@ export const CreateExamModal: React.FC<CreateExamModalProps> = ({ isOpen, onClos
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Input
-                type="number"
                 label="Điểm tối đa"
-                placeholder="10"
-                min="1"
-                max="100"
+                type="number"
+                min={1}
+                max={1000}
                 value={formData.maxScore}
-                onChange={(e) => setFormData({ ...formData, maxScore: parseFloat(e.target.value) || 0 })}
+                onChange={(e) => setFormData({ ...formData, maxScore: parseFloat(e.target.value) })}
                 required
               />
             </div>
             <div>
               <Input
-                type="number"
                 label="Trọng số (%)"
-                placeholder="10"
-                min="0"
-                max="100"
-                value={formData.weight}
-                onChange={(e) => setFormData({ ...formData, weight: parseFloat(e.target.value) || 0 })}
-                required
+                type="number"
+                min={0}
+                max={100}
+                value={formData.weightPercent || ''}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    weightPercent: e.target.value ? parseFloat(e.target.value) : undefined,
+                  })
+                }
+                placeholder="Tùy chọn"
               />
             </div>
           </div>
 
           <div>
             <Input
+              label="Ngày thi"
               type="date"
-              label="Ngày thi (tuỳ chọn)"
-              value={formData.examDate || ''}
-              onChange={(e) => setFormData({ ...formData, examDate: e.target.value || undefined })}
+              value={formData.scheduledAt}
+              onChange={(e) => setFormData({ ...formData, scheduledAt: e.target.value })}
+              required
             />
+            <p className="mt-1 text-xs text-midnight/40">Chọn ngày diễn ra đợt đánh giá</p>
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-midnight/10">
-            <Button type="button" variant="ghost" className="flex-1" onClick={onClose} disabled={mutation.isPending}>
-              Huỷ
+          <div className="flex justify-end gap-3 border-t border-midnight/10 pt-6">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Hủy
             </Button>
-            <Button type="submit" className="flex-1 shadow-md" disabled={mutation.isPending}>
+            <Button type="submit" variant="primary" disabled={mutation.isPending}>
               {mutation.isPending ? 'Đang tạo...' : 'Tạo đợt đánh giá'}
             </Button>
           </div>

@@ -88,7 +88,7 @@ export const ClassDetailsPage: React.FC = () => {
       {/* Tab Content */}
       {activeTab === 'results' && classCode ? (
         <ResultsTab
-          classCode={classCode}
+          classId={cls.id}
           onCreateExam={() => setIsCreateExamOpen(true)}
           onViewExam={(exam) => setSelectedExam(exam)}
         />
@@ -215,7 +215,7 @@ export const ClassDetailsPage: React.FC = () => {
           <CreateExamModal
             isOpen={isCreateExamOpen}
             onClose={() => setIsCreateExamOpen(false)}
-            classCode={classCode}
+            classId={cls.id}
           />
           <GradeInputModal
             isOpen={!!selectedExam}

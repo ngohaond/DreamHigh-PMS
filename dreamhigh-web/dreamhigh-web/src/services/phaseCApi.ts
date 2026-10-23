@@ -38,23 +38,25 @@ export async function resolveAlert(alertId: number, data?: { notes?: string }): 
 }
 
 // ========== Grades & Exams API (FR15) ==========
+// GET /api/classes/:id/exams, POST /api/exams, POST /api/exams/:id/grades/bulk
+// Authorization: JWT Bearer token, RBAC enforced
 
-export async function getClassExams(classCode: string): Promise<ClassExamsResponse> {
-  const response = await apiClient.get(`/classes/${classCode}/exams`);
+export async function getClassExams(classId: number): Promise<ClassExamsResponse> {
+  const response = await apiClient.get(`/classes/${classId}/exams`);
   return response.data;
 }
 
-export async function createExam(data: CreateExamRequest): Promise<Exam> {
+export async function createExam(data: CreateExamRequest): Promise<{ statusCode: number; message: string; data: Exam }> {
   const response = await apiClient.post('/exams', data);
   return response.data;
 }
 
-export async function submitBulkGrades(examId: string, data: BulkGradesRequest): Promise<BulkGradesResponse> {
+export async function submitBulkGrades(examId: number, data: BulkGradesRequest): Promise<BulkGradesResponse> {
   const response = await apiClient.post(`/exams/${examId}/grades/bulk`, data);
   return response.data;
 }
 
-export async function getExamGrades(examId: string) {
+export async function getExamGrades(examId: number) {
   const response = await apiClient.get(`/exams/${examId}/grades`);
   return response.data;
 }
