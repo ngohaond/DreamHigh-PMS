@@ -38,6 +38,17 @@ export class UsersController {
     return this.usersService.listRolesForAdmin();
   }
 
+  /**
+   * Danh sách giáo viên dùng cho bộ chọn GV (xếp lịch, đổi GV).
+   * Phạm vi chi nhánh lấy từ JWT — ADMIN không giới hạn.
+   */
+  @Get('lookup/teachers')
+  @Roles('ADMIN', 'MANAGER', 'STAFF')
+  lookupTeachers(@Request() req: { user: { roles: string[]; branchIds: number[] } }) {
+    const isSuperAdmin = req.user.roles.includes('ADMIN');
+    return this.usersService.listTeachers(isSuperAdmin ? null : req.user.branchIds ?? []);
+  }
+
   @Get()
   @Roles('ADMIN')
   findAll() {

@@ -8,6 +8,7 @@ import { EnrollmentModule } from './modules/enrollment/enrollment.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { StudentsModule } from './modules/students/students.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { ScheduleModule } from './modules/schedule/schedule.module';
 import { HealthModule } from './health/health.module';
 
 import { APP_INTERCEPTOR } from '@nestjs/core';
@@ -24,6 +25,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     LeadsModule,
     StudentsModule,
     EnrollmentModule,
+    ScheduleModule,
     HealthModule,
   ],
   controllers: [],

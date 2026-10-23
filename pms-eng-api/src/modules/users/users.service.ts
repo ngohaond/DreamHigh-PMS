@@ -84,6 +84,35 @@ export class UsersService {
     });
   }
 
+  /**
+   * Danh sách giáo viên dùng để chọn GV khi xếp lịch / đổi GV.
+   * Chỉ trả field công khai, giới hạn theo chi nhánh user được cấp (ADMIN: tất cả).
+   */
+  async listTeachers(branchIds: number[] | null) {
+    const teachers = await this.prisma.systemUser.findMany({
+      where: {
+        status: 'ACTIVE',
+        userRoles: { some: { role: { code: 'TEACHER' } } },
+        ...(branchIds ? { userBranches: { some: { branchId: { in: branchIds } } } } : {}),
+      },
+      include: userInclude,
+      orderBy: { fullName: 'asc' },
+    });
+
+    return {
+      statusCode: 200,
+      message: 'Lấy danh sách giáo viên thành công',
+      data: teachers.map((teacher) => ({
+        id: teacher.id,
+        fullName: teacher.fullName,
+        email: teacher.email,
+        phone: teacher.phone ?? null,
+        branchIds: teacher.userBranches.map((ub) => ub.branchId),
+      })),
+      meta: { total: teachers.length },
+    };
+  }
+
   async findAll() {
     const users = await this.prisma.systemUser.findMany({
       include: userInclude,

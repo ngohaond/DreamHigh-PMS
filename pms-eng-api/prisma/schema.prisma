@@ -77,6 +77,14 @@ enum SessionStatus {
   CANCELLED
 }
 
+enum SessionChangeType {
+  RESCHEDULE
+  SHIFT
+  CHANGE_TEACHER
+  CHANGE_ROOM
+  CANCEL
+}
+
 enum AttendanceStatus {
   PRESENT
   ABSENT_EXCUSED
@@ -155,11 +163,13 @@ model SystemUser {
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime?        @updatedAt @map("updated_at")
 
-  userBranches    UserBranch[]
-  userRoles       UserRole[]
-  leadsAssigned   Lead[]          @relation("LeadAssignments")
-  classesTeaching TrainingClass[]
-  auditLogs       AuditLog[]
+  userBranches     UserBranch[]
+  userRoles        UserRole[]
+  leadsAssigned    Lead[]          @relation("LeadAssignments")
+  classesTeaching  TrainingClass[]
+  sessionsTeaching Session[]       @relation("SessionTeacher")
+  sessionChanges   SessionChange[] @relation("SessionChangeActor")
+  auditLogs        AuditLog[]
 
   @@map("system_users")
 }
@@ -315,10 +325,10 @@ model Program {
 }
 
 model Level {
-  id        Int    @id @default(autoincrement())
-  programId Int    @map("program_id")
-  code      String @db.VarChar(50)
-  name      String @db.VarChar(255)
+  id        Int           @id @default(autoincrement())
+  programId Int           @map("program_id")
+  code      String        @db.VarChar(50)
+  name      String        @db.VarChar(255)
   sortOrder Int           @map("sort_order")
   status    CatalogStatus @default(ACTIVE)
 
@@ -411,15 +421,49 @@ model Session {
   endTime   DateTime      @map("end_time")
   status    SessionStatus @default(NORMAL)
   topicNote String?       @map("topic_note") @db.VarChar(1000)
+  /// Giáo viên thực dạy riêng cho buổi này. Null = mượn giáo viên của lớp (TrainingClass.teacherId).
+  teacherId Int?          @map("teacher_id")
 
-  trainingClass TrainingClass @relation(fields: [classId], references: [id], onDelete: Cascade)
-  room          Room          @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  trainingClass TrainingClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  room          Room            @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  teacher       SystemUser?     @relation("SessionTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
   attendances   Attendance[]
+  changes       SessionChange[]
 
   @@index([classId])
   @@index([roomId])
   @@index([startTime])
+  @@index([roomId, startTime])
+  @@index([classId, startTime])
+  @@index([teacherId, startTime])
   @@map("sessions")
+}
+
+/// Lịch sử thay đổi buổi học (đời lịch, đổi GV, đổi phòng, hủy).
+model SessionChange {
+  id            Int               @id @default(autoincrement())
+  sessionId     Int               @map("session_id")
+  changedBy     Int?              @map("changed_by")
+  changeType    SessionChangeType @map("change_type")
+  reason        String?           @db.VarChar(2000)
+  fromStartTime DateTime?         @map("from_start_time")
+  toStartTime   DateTime?         @map("to_start_time")
+  fromEndTime   DateTime?         @map("from_end_time")
+  toEndTime     DateTime?         @map("to_end_time")
+  fromTeacherId Int?              @map("from_teacher_id")
+  toTeacherId   Int?              @map("to_teacher_id")
+  fromRoomId    Int?              @map("from_room_id")
+  toRoomId      Int?              @map("to_room_id")
+  fromStatus    SessionStatus?    @map("from_status")
+  toStatus      SessionStatus?    @map("to_status")
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  changedByUser SystemUser? @relation("SessionChangeActor", fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@index([sessionId, createdAt])
+  @@index([changedBy])
+  @@map("session_changes")
 }
 
 model Attendance {
@@ -533,4 +577,3 @@ model AuditLog {
   @@index([resource])
   @@map("audit_logs")
 }
-

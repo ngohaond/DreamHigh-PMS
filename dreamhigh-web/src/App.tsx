@@ -18,6 +18,8 @@ import TeacherManagement from './pages/HR/TeacherManagement';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ClassesHubPage from './pages/Classes/ClassesHubPage';
 import ClassScheduleManagement from './pages/Classes/ClassScheduleManagement';
+import MySchedulePage from './pages/Classes/MySchedulePage';
+import TeachingHoursPage from './pages/Reports/TeachingHoursPage';
 import CoursesHubPage from './pages/Courses/CoursesHubPage';
 import CourseManagement from './pages/Courses/CourseManagement';
 import CurriculumManagement from './pages/Courses/CurriculumManagement';
@@ -43,7 +45,9 @@ function AppRoutes() {
           <Route path="/courses/curriculum" element={<CurriculumManagement />} />
           <Route path="/classes" element={<ClassesHubPage />} />
           <Route path="/classes/schedule" element={<ClassScheduleManagement />} />
+          <Route path="/classes/my-schedule" element={<MySchedulePage />} />
           <Route path="/classes/:id" element={<ClassDetailsPage />} />
+          <Route path="/reports/teaching-hours" element={<TeachingHoursPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           {/* Redirect authorized users from root to dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
