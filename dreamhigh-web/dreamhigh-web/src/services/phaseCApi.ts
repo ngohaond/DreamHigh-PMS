@@ -24,18 +24,17 @@ export async function submitBulkAttendance(
 }
 
 // ========== Attendance Risk Alerts API (FR14) ==========
+// GET /alerts/attendance-risk
+// PATCH /alerts/attendance-risk/:id/resolve
+// Authorization: Bearer token, Roles: ADMIN, MANAGER, STAFF
 
 export async function getAttendanceAlerts(filters?: AttendanceAlertsFilters): Promise<AttendanceAlertsResponse> {
   const response = await apiClient.get('/alerts/attendance-risk', { params: filters });
   return response.data;
 }
 
-export async function acknowledgeAlert(alertId: string): Promise<void> {
-  await apiClient.patch(`/alerts/attendance-risk/${alertId}/acknowledge`);
-}
-
-export async function resolveAlert(alertId: string): Promise<void> {
-  await apiClient.patch(`/alerts/attendance-risk/${alertId}/resolve`);
+export async function resolveAlert(alertId: number, data?: { notes?: string }): Promise<void> {
+  await apiClient.patch(`/alerts/attendance-risk/${alertId}/resolve`, data);
 }
 
 // ========== Grades & Exams API (FR15) ==========

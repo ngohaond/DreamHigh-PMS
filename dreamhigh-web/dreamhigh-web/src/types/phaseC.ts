@@ -36,32 +36,48 @@ export interface BulkAttendanceResponse {
 }
 
 // ========== Attendance Risk Alerts (FR14) ==========
+// API: GET /alerts/attendance-risk
+// Authorization: Bearer token, Roles: ADMIN, MANAGER, STAFF
 
 export interface AttendanceAlert {
-  id: string;
-  studentId: string;
-  studentName: string;
-  studentCode: string;
-  classCode: string;
-  className: string;
-  absenceCount: number;
-  totalSessions: number;
-  absenceRate: number;
-  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  lastAbsentDate?: string;
-  createdAt: string;
-  status: 'ACTIVE' | 'RESOLVED' | 'ACKNOWLEDGED';
+  id: number;
+  studentId: number;
+  classId: number;
+  consecutiveCount: number; // Số buổi vắng liên tục
+  detectedAt: string; // ISO timestamp
+  resolved: boolean;
+  resolvedAt?: string; // ISO timestamp
+  resolvedBy?: number;
+  notes?: string;
+  student: {
+    id: number;
+    studentCode: string;
+    fullName: string;
+    email: string;
+  };
+  trainingClass: {
+    id: number;
+    classCode: string;
+    className: string;
+  };
+  resolver?: {
+    id: number;
+    fullName: string;
+  };
 }
 
 export interface AttendanceAlertsFilters {
-  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  status?: 'ACTIVE' | 'RESOLVED' | 'ACKNOWLEDGED';
-  classCode?: string;
+  resolved?: boolean; // Filter by resolution status
+  classId?: number; // Filter by class
+  studentId?: number; // Filter by student
 }
 
 export interface AttendanceAlertsResponse {
-  alerts: AttendanceAlert[];
-  total: number;
+  data: AttendanceAlert[];
+}
+
+export interface ResolveAlertRequest {
+  notes?: string;
 }
 
 // ========== Grades & Exams (FR15) ==========
