@@ -12,9 +12,14 @@ import type {
 } from '../types/phaseC';
 
 // ========== Attendance API (FR13) ==========
+// POST /sessions/:sessionId/attendances
+// Authorization: JWT Bearer token, user must be Teacher of class OR ADMIN/MANAGER
 
-export async function submitBulkAttendance(data: BulkAttendanceRequest): Promise<BulkAttendanceResponse> {
-  const response = await apiClient.post('/attendance/bulk', data);
+export async function submitBulkAttendance(
+  sessionId: number,
+  data: BulkAttendanceRequest
+): Promise<BulkAttendanceResponse> {
+  const response = await apiClient.post(`/sessions/${sessionId}/attendances`, data);
   return response.data;
 }
 

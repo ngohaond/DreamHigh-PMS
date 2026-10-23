@@ -1,23 +1,38 @@
 // Phase C API Types for Attendance, Alerts, and Grades
 
 // ========== Attendance (FR13) ==========
+// API: POST /sessions/:sessionId/attendances
+// Authorization: JWT Bearer token, user must be Teacher of class OR ADMIN/MANAGER
+
+export type AttendanceStatus = 'PRESENT' | 'ABSENT_EXCUSED' | 'ABSENT_UNEXCUSED';
 
 export interface BulkAttendanceRecord {
-  studentId: string;
-  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
-  note?: string;
+  studentId: number;
+  status: AttendanceStatus;
+  note?: string; // Optional, max 500 chars
 }
 
 export interface BulkAttendanceRequest {
-  sessionId: string;
-  classCode: string;
-  records: BulkAttendanceRecord[];
+  attendances: BulkAttendanceRecord[];
+}
+
+export interface AttendanceRecordResponse {
+  id: number;
+  sessionId: number;
+  studentId: number;
+  studentCode: string;
+  studentName: string;
+  status: AttendanceStatus;
+  note: string | null;
 }
 
 export interface BulkAttendanceResponse {
-  success: boolean;
+  statusCode: number;
   message: string;
-  savedCount: number;
+  data: AttendanceRecordResponse[];
+  meta: {
+    total: number;
+  };
 }
 
 // ========== Attendance Risk Alerts (FR14) ==========
