@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type ReactNode } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import {
   AlertCircle,
   Bookmark,
@@ -44,12 +44,49 @@ function resequenceLessons(baseLessons: CurriculumLesson[]): CurriculumLesson[] 
   });
 }
 
-const CurriculumDetail: React.FC<CurriculumDetailProps> = ({ program, onBack, onUpdate }) => {
-  const [lessons, setLessons] = useState<CurriculumLesson[]>(() => resequenceLessons(program.lessons));
+interface MaterialCardProps {
+  title: string;
+  value: string;
+  icon: ReactNode;
+  accentClass: string;
+  onEdit: () => void;
+}
 
-  useEffect(() => {
-    setLessons(resequenceLessons(program.lessons));
-  }, [program.id, program.lessons]);
+const MaterialCard: React.FC<MaterialCardProps> = ({ title, value, icon, accentClass, onEdit }) => (
+  <Card className="relative flex flex-col gap-3 overflow-hidden p-6 shadow-sm">
+    <div className={`absolute left-0 top-0 h-full w-1.5 ${accentClass}`} aria-hidden />
+    <div className="flex items-center justify-between pl-2">
+      <span className="font-label text-[10px] font-semibold uppercase tracking-widest text-midnight/40">{title}</span>
+      <span className="text-midnight/50">{icon}</span>
+    </div>
+    <h4 className="min-h-[3rem] pl-2 font-headline text-lg italic leading-tight text-midnight line-clamp-2">
+      {value || 'Chưa cập nhật'}
+    </h4>
+    <div className="mt-auto flex items-center justify-between border-t border-midnight/5 pt-4 pl-2">
+      <button
+        type="button"
+        onClick={onEdit}
+        className="flex items-center gap-1 font-label text-[10px] font-semibold uppercase tracking-wider text-gold transition-colors hover:text-midnight"
+      >
+        <Upload size={12} strokeWidth={2} aria-hidden />
+        Cập nhật học liệu
+      </button>
+      {value ? (
+        <button type="button" className="rounded-lg bg-midnight/5 p-1.5 text-midnight/40 transition-colors hover:text-info" title="Xem tài liệu">
+          <Eye size={14} strokeWidth={2} aria-hidden />
+        </button>
+      ) : null}
+    </div>
+  </Card>
+);
+
+const CurriculumDetail: React.FC<CurriculumDetailProps> = ({ program, onBack, onUpdate }) => {
+  const [lessonState, setLessonState] = useState(() => ({
+    programId: program.id,
+    lessons: resequenceLessons(program.lessons),
+  }));
+  const lessons = lessonState.programId === program.id ? lessonState.lessons : resequenceLessons(program.lessons);
+  const setLessons = (nextLessons: CurriculumLesson[]) => setLessonState({ programId: program.id, lessons: nextLessons });
   const [editingLesson, setEditingLesson] = useState<CurriculumLesson | null>(null);
   const [isAddingLesson, setIsAddingLesson] = useState(false);
   const [isResourcesModalOpen, setIsResourcesModalOpen] = useState(false);
@@ -135,48 +172,6 @@ const CurriculumDetail: React.FC<CurriculumDetailProps> = ({ program, onBack, on
     setEditingLesson(newLessonTemplate);
   };
 
-  const MaterialCard = ({
-    title,
-    value,
-    icon,
-    accentClass,
-  }: {
-    title: string;
-    value: string;
-    icon: ReactNode;
-    accentClass: string;
-  }) => (
-    <Card className="relative flex flex-col gap-3 overflow-hidden p-6 shadow-sm">
-      <div className={`absolute left-0 top-0 h-full w-1.5 ${accentClass}`} aria-hidden />
-      <div className="flex items-center justify-between pl-2">
-        <span className="font-label text-[10px] font-semibold uppercase tracking-widest text-midnight/40">{title}</span>
-        <span className="text-midnight/50">{icon}</span>
-      </div>
-      <h4 className="min-h-[3rem] pl-2 font-headline text-lg italic leading-tight text-midnight line-clamp-2">
-        {value || 'Chưa cập nhật'}
-      </h4>
-      <div className="mt-auto flex items-center justify-between border-t border-midnight/5 pt-4 pl-2">
-        <button
-          type="button"
-          onClick={() => setIsResourcesModalOpen(true)}
-          className="flex items-center gap-1 font-label text-[10px] font-semibold uppercase tracking-wider text-gold transition-colors hover:text-midnight"
-        >
-          <Upload size={12} strokeWidth={2} aria-hidden />
-          Cập nhật học liệu
-        </button>
-        {value ? (
-          <button
-            type="button"
-            className="rounded-lg bg-midnight/5 p-1.5 text-midnight/40 transition-colors hover:text-info"
-            title="Xem tài liệu"
-          >
-            <Eye size={14} strokeWidth={2} aria-hidden />
-          </button>
-        ) : null}
-      </div>
-    </Card>
-  );
-
   const activeCount = lessons.filter((l) => l.executionStatus !== 'Huỷ').length;
 
   return (
@@ -212,24 +207,28 @@ const CurriculumDetail: React.FC<CurriculumDetailProps> = ({ program, onBack, on
           value={program.textbook}
           icon={<Bookmark size={16} strokeWidth={2} aria-hidden />}
           accentClass="bg-gold"
+          onEdit={() => setIsResourcesModalOpen(true)}
         />
         <MaterialCard
           title="02. Student Book"
           value={program.studentBook || ''}
           icon={<BookCopy size={16} strokeWidth={2} aria-hidden />}
           accentClass="bg-midnight"
+          onEdit={() => setIsResourcesModalOpen(true)}
         />
         <MaterialCard
           title="03. Brochure"
           value={program.brochure || ''}
           icon={<FileText size={16} strokeWidth={2} aria-hidden />}
           accentClass="bg-warning"
+          onEdit={() => setIsResourcesModalOpen(true)}
         />
         <MaterialCard
           title="04. Global materials"
           value={program.globalMaterials || ''}
           icon={<Library size={16} strokeWidth={2} aria-hidden />}
           accentClass="bg-info"
+          onEdit={() => setIsResourcesModalOpen(true)}
         />
       </div>
 

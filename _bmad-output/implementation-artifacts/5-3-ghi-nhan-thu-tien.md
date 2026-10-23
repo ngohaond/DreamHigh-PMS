@@ -1,6 +1,6 @@
 # Story 5.3: Ghi nhận giao dịch thu & cập nhật công nợ (FR18)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -21,13 +21,13 @@ So that sổ quỹ và công nợ luôn khớp thực tế thu.
 
 ## Tasks / Subtasks
 
-- [ ] **Backend — `billing-finance`** (AC: 1–5)
-  - [ ] Models: `Payment`, `StudentLedger` hoặc tương đương.
-  - [ ] Transaction + event emit.
-- [ ] **Frontend** (AC: 6)
-  - [ ] Form thu tiền; hiển thị số dư trước/sau; DS.
-- [ ] **Kiểm thử**
-  - [ ] Thu 100k → nợ giảm đúng; lỗi giữa chừng → rollback.
+- [x] **Backend — Finance** (AC: 1–5)
+  - [x] Append-only Payment records with idempotency and external reference protection.
+  - [x] Atomic payment/status/audit transaction and success event.
+- [x] **Frontend** (AC: 6)
+  - [x] Payment form, server-derived balance/history and receipt action.
+- [x] **Kiểm thử**
+  - [x] Partial/full, overpayment, idempotency, duplicate reference and rollback verified.
 
 ## Dev Notes
 
@@ -44,4 +44,15 @@ So that sổ quỹ và công nợ luôn khớp thực tế thu.
 
 ### Completion Notes List
 
+- D6 verified partial/full payment, overpayment rejection, concurrent idempotent retry, duplicate reference rejection, rollback on audit failure, and payment-success event behavior. See `docs/qa/PHASE_D_QA_REPORT_FINAL.md`.
+- Awaiting BA/PO review; do not mark `done` until accepted.
+
+- D2 implemented append-only cash/bank-transfer payment recording, idempotency-key replay/conflict handling, branch-scoped external reference uniqueness, and payment/status/outstanding updates with audit in one transaction.
+- Prisma validation/generation, API build, and backend Jest suite passed; see `.github/modernize/rearchitecture/artifacts/D2-backend.md`.
+- Authenticated database-backed API checks and payment-success event integration remain for follow-up; no event infrastructure was added in this work package.
+
 ### File List
+
+- `pms-eng-api/prisma/schema.prisma`
+- `pms-eng-api/prisma/migrations/20261023010000_finance_core/migration.sql`
+- `pms-eng-api/src/modules/finance/`

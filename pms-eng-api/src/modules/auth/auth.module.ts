@@ -4,12 +4,15 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { resolveJwtSecret } from '../../common/security/security-config';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     PassportModule,
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'dreamhigh_super_secret_key_2026',
+      secret: resolveJwtSecret(),
       signOptions: { expiresIn: '1d' },
     }),
   ],

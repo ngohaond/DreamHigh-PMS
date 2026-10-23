@@ -7,26 +7,39 @@ import { Card } from '../../design-system/components/ui/Card';
 import { Input, TextArea, Select } from '../../design-system/components/ui/Input';
 import { apiClient } from '../../services/apiClient';
 
+type LeadStatus = 'NEW' | 'CONTACTED' | 'CONVERTED' | 'LOST';
+type LeadGender = 'MALE' | 'FEMALE' | 'OTHER';
+interface LeadRecord {
+  id: number;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  notes: string | null;
+  status: LeadStatus;
+}
+interface LeadDraft { fullName: string; phone: string; email: string; notes: string }
+
 export default function LeadsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [selectedLead, setSelectedLead] = useState<LeadRecord | null>(null);
   
   // Form State
   const [formData, setFormData] = useState({ fullName: '', phone: '', email: '', notes: '' });
-  const [convertData, setConvertData] = useState({ dob: '', gender: 'MALE' });
+  const [convertData, setConvertData] = useState<{ dob: string; gender: LeadGender }>({ dob: '', gender: 'MALE' });
 
-  const { data: leads, isLoading } = useQuery({
+  const { data: leads = [], isLoading } = useQuery<LeadRecord[]>({
     queryKey: ['crm-leads'],
     queryFn: async () => {
       const resp = await apiClient.get('/leads');
-      return resp.data;
+      const payload = resp.data as LeadRecord[] | { data?: LeadRecord[] };
+      return Array.isArray(payload) ? payload : payload.data ?? [];
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiClient.post('/leads', data),
+    mutationFn: (data: LeadDraft) => apiClient.post('/leads', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
       setIsModalOpen(false);
@@ -35,15 +48,19 @@ export default function LeadsPage() {
   });
 
   const convertMutation = useMutation({
-    mutationFn: (data: any) => apiClient.post(`/enrollment/leads/${selectedLead.id}/convert`, data),
+    mutationFn: (data: { dob: string; gender: LeadGender; branchId: number }) => {
+      if (!selectedLead) throw new Error('Vui lòng chọn lead cần chuyển đổi');
+      return apiClient.post(`/enrollment/leads/${selectedLead.id}/convert`, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-leads'] });
       queryClient.invalidateQueries({ queryKey: ['crm-students'] });
       setIsConvertModalOpen(false);
       alert('Chuyển đổi thành công!');
     },
-    onError: (err: any) => {
-      alert(err.response?.data?.message || 'Có lỗi xảy ra');
+    onError: (err: unknown) => {
+      const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+      alert(typeof message === 'string' ? message : 'Có lỗi xảy ra');
     },
   });
 
@@ -73,7 +90,7 @@ export default function LeadsPage() {
             {isLoading ? (
               <tr><td colSpan={3} className="px-6 py-12 text-center text-midnight/20">Đang tải dữ liệu...</td></tr>
             ) : (
-              leads?.map((lead: any) => (
+              leads.map((lead) => (
                 <tr key={lead.id} className="hover:bg-midnight/[0.02] transition-colors group">
                   <td className="px-6 py-4 text-left">
                     <div className="flex flex-col">
@@ -169,7 +186,7 @@ export default function LeadsPage() {
               <Select 
                 label="Giới tính"
                 value={convertData.gender}
-                onChange={e => setConvertData({ ...convertData, gender: e.target.value })}
+                onChange={e => setConvertData({ ...convertData, gender: e.target.value as LeadGender })}
               >
                 <option value="MALE">Nam</option>
                 <option value="FEMALE">Nữ</option>

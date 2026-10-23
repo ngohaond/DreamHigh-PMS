@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, { useMemo, useState, type ReactNode } from 'react';
 import {
   AlertCircle,
   Award,
@@ -16,7 +16,7 @@ import { Button } from '../../design-system/components/ui/Button';
 import { Card } from '../../design-system/components/ui/Card';
 import { TextArea } from '../../design-system/components/ui/Input';
 import type { AdminMessage } from '../../types/adminSystem';
-import type { CrmStudent, PaymentRecord, StudentCourseRecord } from '../../types/crmStudent';
+import type { CrmStudent, PaymentRecord } from '../../types/crmStudent';
 import {
   getCoursePaymentStatusClass,
   getCrmStudentStatusClass,
@@ -40,13 +40,11 @@ const StudentDetail: React.FC<StudentDetailProps> = ({ student, onBack }) => {
     () => student.courses.find((c) => c.isCurrent) || (student.courses.length > 0 ? student.courses[0] : null),
     [student.courses],
   );
-  const [selectedCourseFinance, setSelectedCourseFinance] = useState<StudentCourseRecord | null>(initialFinance);
+  const [selectedFinanceKey, setSelectedFinanceKey] = useState<{ studentId: string; courseId: string } | null>(null);
+  const selectedCourseFinance = selectedFinanceKey?.studentId === student.id
+    ? student.courses.find((course) => course.courseId === selectedFinanceKey.courseId) ?? initialFinance
+    : initialFinance;
   const [notificationPeriod, setNotificationPeriod] = useState<PaymentRecord | null>(null);
-
-  useEffect(() => {
-    const next = student.courses.find((c) => c.isCurrent) || (student.courses.length > 0 ? student.courses[0] : null);
-    setSelectedCourseFinance(next);
-  }, [student.id, student.courses]);
 
   const generateNoticeText = () => {
     if (!notificationPeriod || !selectedCourseFinance) return '';
@@ -304,11 +302,11 @@ Trân trọng!`;
                           key={`${c.courseId}-fin-${i}`}
                           role="button"
                           tabIndex={0}
-                          onClick={() => setSelectedCourseFinance(c)}
+                          onClick={() => setSelectedFinanceKey({ studentId: student.id, courseId: c.courseId })}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              setSelectedCourseFinance(c);
+                              setSelectedFinanceKey({ studentId: student.id, courseId: c.courseId });
                             }
                           }}
                           className={`cursor-pointer transition-colors hover:bg-gold/5 ${

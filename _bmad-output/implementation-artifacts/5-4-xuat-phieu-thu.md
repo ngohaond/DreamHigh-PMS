@@ -1,6 +1,6 @@
 # Story 5.4: Xuất phiếu thu (PDF / in) (FR19)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,12 +20,12 @@ So that trả cho phụ huynh chứng từ chuẩn và có thể lưu hồ sơ.
 
 ## Tasks / Subtasks
 
-- [ ] **Backend** (AC: 1–3, 5)
-  - [ ] Service render PDF; template HTML hoặc template engine.
-- [ ] **Frontend** (AC: 1, 4)
-  - [ ] Nút download/open tab; loading state.
-- [ ] **Kiểm thử**
-  - [ ] PDF mở đúng; dữ liệu khớp DB.
+- [x] **Backend** (AC: 1–3, 5)
+  - [x] Secured PDF service with branch/year receipt number, Vietnamese font and DreamHigh logo.
+- [x] **Frontend** (AC: 1, 4)
+  - [x] Download action with pending/error states.
+- [x] **Kiểm thử**
+  - [x] Required fields, live PDF response, Unicode and branch denial verified.
 
 ## Dev Notes
 
@@ -40,5 +40,8 @@ So that trả cho phụ huynh chứng từ chuẩn và có thể lưu hồ sơ.
 ### Debug Log References
 
 ### Completion Notes List
+
+- D3/D5 receipt generation and download are implemented; D6 verified PDF response, Vietnamese font/logo, branch authorization, and browser download request. See `docs/qa/PHASE_D_QA_REPORT_FINAL.md`.
+- Awaiting BA/PO review; do not mark `done` until accepted.
 
 ### File List

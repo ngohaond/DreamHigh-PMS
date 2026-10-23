@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { AlertTriangle, CalendarDays, X } from 'lucide-react';
 import { Button } from '../../design-system/components/ui/Button';
@@ -57,15 +57,8 @@ const ScheduleGeneratorModal: React.FC<ScheduleGeneratorModalProps> = ({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [conflict, setConflict] = useState<ScheduleConflictDetail | null>(null);
 
-  // Phòng mặc định: phòng đầu tiên thuộc chi nhánh của lớp.
-  useEffect(() => {
-    if (!isOpen) return;
-    const candidates = rooms.filter((r) => r.branchId === trainingClass.branchId && r.status === 'AVAILABLE');
-    setRoomId((prev) => {
-      if (prev && candidates.some((r) => String(r.id) === prev)) return prev;
-      return candidates.length > 0 ? String(candidates[0].id) : '';
-    });
-  }, [isOpen, rooms, trainingClass.branchId]);
+  const availableRooms = rooms.filter((room) => room.branchId === trainingClass.branchId && room.status === 'AVAILABLE');
+  const effectiveRoomId = roomId || String(availableRooms[0]?.id ?? '');
 
   const toggleWeekday = (day: number) => {
     setWeekdays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()));
@@ -88,7 +81,7 @@ const ScheduleGeneratorModal: React.FC<ScheduleGeneratorModalProps> = ({
     mutationFn: async () => {
       return previewSessions(trainingClass.id, {
         ...rulePayload,
-        roomId: roomId ? Number(roomId) : undefined,
+        roomId: effectiveRoomId ? Number(effectiveRoomId) : undefined,
       });
     },
     onSuccess: (data) => {
@@ -105,9 +98,9 @@ const ScheduleGeneratorModal: React.FC<ScheduleGeneratorModalProps> = ({
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      if (!roomId) throw new Error('Vui lòng chọn phòng học');
+      if (!effectiveRoomId) throw new Error('Vui lòng chọn phòng học');
       return generateSessions(trainingClass.id, {
-        roomId: Number(roomId),
+        roomId: Number(effectiveRoomId),
         ...rulePayload,
       });
     },
@@ -125,7 +118,7 @@ const ScheduleGeneratorModal: React.FC<ScheduleGeneratorModalProps> = ({
   if (!isOpen) return null;
 
   const branchRooms = rooms.filter((r) => r.branchId === trainingClass.branchId);
-  const selectedRoom = branchRooms.find((r) => String(r.id) === roomId);
+  const selectedRoom = branchRooms.find((r) => String(r.id) === effectiveRoomId);
   const capacityWarning =
     selectedRoom && selectedRoom.capacity < trainingClass.maxStudents
       ? `Phòng ${selectedRoom.name ?? selectedRoom.roomCode} chỉ chứa ${selectedRoom.capacity} chỗ, lớp đang nhận tối đa ${trainingClass.maxStudents} học viên.`
@@ -222,7 +215,7 @@ const ScheduleGeneratorModal: React.FC<ScheduleGeneratorModalProps> = ({
             />
             <Select
               label="Phòng học"
-              value={roomId}
+              value={effectiveRoomId}
               onChange={(e) => {
                 setRoomId(e.target.value);
                 setPreview(null);

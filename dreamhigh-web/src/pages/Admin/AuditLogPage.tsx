@@ -6,14 +6,25 @@ import { Card } from '../../design-system/components/ui/Card';
 import { Button } from '../../design-system/components/ui/Button';
 import { apiClient } from '../../services/apiClient';
 
-export default function AuditLogPage() {
-  const [selectedLog, setSelectedLog] = useState<any>(null);
+interface AuditLogRow {
+  id: number;
+  createdAt: string;
+  action: string;
+  resource: string;
+  recordId: string | null;
+  ipAddress: string | null;
+  details: { payload?: unknown } | null;
+  user: { fullName: string; email: string } | null;
+}
 
-  const { data: logsResponse, isLoading, error } = useQuery({
+export default function AuditLogPage() {
+  const [selectedLog, setSelectedLog] = useState<AuditLogRow | null>(null);
+
+  const { data: logs = [], isLoading, error } = useQuery<AuditLogRow[]>({
     queryKey: ['admin-audit-logs'],
     queryFn: async () => {
       const resp = await apiClient.get('/audit-logs');
-      return resp.data;
+      return (resp.data.data ?? []) as AuditLogRow[];
     },
   });
 
@@ -45,7 +56,7 @@ export default function AuditLogPage() {
             ) : error ? (
               <tr><td colSpan={4} className="px-6 py-12 text-center text-error">Có lỗi xảy ra khi tải dữ liệu nhật ký.</td></tr>
             ) : (
-              logsResponse?.data?.map((log: any) => (
+              logs.map((log) => (
                 <tr key={log.id} className="hover:bg-midnight/[0.02] transition-colors group">
                   <td className="px-6 py-4 font-body text-xs text-midnight/40 text-left">
                     {new Date(log.createdAt).toLocaleString('vi-VN')}

@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useId, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { AlertTriangle, X } from 'lucide-react';
 import { Button } from '../../design-system/components/ui/Button';
@@ -73,21 +73,6 @@ const SessionActionModal: React.FC<SessionActionModalProps> = ({
   const [teacherId, setTeacherId] = useState<string>(session.teacherId ? String(session.teacherId) : '');
   const [roomId, setRoomId] = useState<string>(String(session.roomId));
   const [confirmCancel, setConfirmCancel] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setTab('reschedule');
-    setConflict(null);
-    setLocalError(null);
-    setDate(session.localDate);
-    setStartTime(session.localStartTime);
-    setEndTime(session.localEndTime);
-    setShiftFollowing(false);
-    setReason('');
-    setTeacherId(session.teacherId ? String(session.teacherId) : '');
-    setRoomId(String(session.roomId));
-    setConfirmCancel(false);
-  }, [isOpen, session]);
 
   const handleError = (e: unknown, fallback: string) => {
     const detail = apiConflictDetail(e);
@@ -167,8 +152,7 @@ const SessionActionModal: React.FC<SessionActionModalProps> = ({
     roomMutation.isPending ||
     cancelMutation.isPending;
 
-  const ConflictBlock: React.FC = () =>
-    conflict ? (
+  const conflictBlock = conflict ? (
       <div className="rounded-xl border border-error/30 bg-error-bg p-4">
         <p className="flex items-center gap-2 font-label text-[10px] font-semibold uppercase tracking-widest text-error">
           <AlertTriangle size={14} strokeWidth={2} aria-hidden /> Xung đột lịch
@@ -239,7 +223,7 @@ const SessionActionModal: React.FC<SessionActionModalProps> = ({
             </p>
           )}
           <div className="mb-4">
-            <ConflictBlock />
+            {conflictBlock}
           </div>
 
           {tab === 'reschedule' && (

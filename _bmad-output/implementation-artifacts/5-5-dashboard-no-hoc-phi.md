@@ -1,6 +1,6 @@
 # Story 5.5: Dashboard / báo cáo công nợ & nợ quá hạn (FR20)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,12 +20,12 @@ So that giao việc nhắc thu và điều phối chăm sóc kịp thời.
 
 ## Tasks / Subtasks
 
-- [ ] **Backend** (AC: 1–4)
-  - [ ] Query aggregate từ ledger + due dates; định nghĩa “quá hạn” theo BA.
-- [ ] **Frontend** (AC: 2, 5)
-  - [ ] Trang Dashboard mới hoặc tab Finance trong hub; `AppLayout` + `PageHeader`.
-- [ ] **Kiểm thử**
-  - [ ] HV không nợ không xuất hiện nhầm; filter chi nhánh hoạt động.
+- [x] **Backend** (AC: 1–4)
+  - [x] Branch-scoped arrears API with approved due-date semantics, filters, totals and pagination.
+- [x] **Frontend** (AC: 2, 5)
+  - [x] Finance dashboard, branch/date/student/status filters and all-pages XLSX export.
+- [x] **Kiểm thử**
+  - [x] Totals, paid/overdue rows, branch isolation and XLSX output verified.
 
 ## Dev Notes
 
@@ -41,5 +41,8 @@ So that giao việc nhắc thu và điều phối chăm sóc kịp thời.
 ### Debug Log References
 
 ### Completion Notes List
+
+- D4/D5 arrears API, dashboard, filters, pagination, and XLSX export are implemented; D6 verified totals, overdue classification, branch isolation, and browser export artifact. See `docs/qa/PHASE_D_QA_REPORT_FINAL.md`.
+- Awaiting BA/PO review; do not mark `done` until accepted.
 
 ### File List

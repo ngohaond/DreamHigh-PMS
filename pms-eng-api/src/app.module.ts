@@ -9,10 +9,12 @@ import { LeadsModule } from './modules/leads/leads.module';
 import { StudentsModule } from './modules/students/students.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ScheduleModule } from './modules/schedule/schedule.module';
+import { FinanceModule } from './modules/finance/finance.module';
 import { HealthModule } from './health/health.module';
 
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 @Module({
   imports: [
@@ -26,6 +28,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     StudentsModule,
     EnrollmentModule,
     ScheduleModule,
+    FinanceModule,
     HealthModule,
   ],
   controllers: [],
@@ -33,6 +36,10 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: PrismaExceptionFilter,
     },
   ],
 })

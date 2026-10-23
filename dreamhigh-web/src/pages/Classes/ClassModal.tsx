@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { AlertTriangle, ShieldCheck, X } from 'lucide-react';
 import { Button } from '../../design-system/components/ui/Button';
@@ -107,18 +107,6 @@ const ClassModal: React.FC<ClassModalProps> = ({
   const [roomId, setRoomId] = useState('');
   const [scheduleEndDate, setScheduleEndDate] = useState('');
   const [withSchedule, setWithSchedule] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setStep('class');
-    setFormData(buildInitial(initialData, courses, branches));
-    setWeekdays([1, 3, 5]);
-    setStartTime('18:00');
-    setEndTime('19:30');
-    setRoomId('');
-    setScheduleEndDate('');
-    setWithSchedule(false);
-  }, [initialData, isOpen, courses, branches]);
 
   const merge = (p: Partial<ClassForm>) => setFormData((prev) => ({ ...prev, ...p }));
 

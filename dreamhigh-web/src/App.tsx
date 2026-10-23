@@ -10,6 +10,7 @@ import CategoryManagement from './pages/Admin/CategoryManagement';
 import AuditLogPage from './pages/Admin/AuditLogPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import { ProtectedRoute } from './router/ProtectedRoute';
+import { SessionIdleGuard } from './router/SessionIdleGuard';
 import LeadsPage from './pages/CRM/LeadsPage';
 import StudentListPage from './pages/CRM/StudentListPage';
 import StudentApiDetailPage from './pages/CRM/StudentApiDetailPage';
@@ -23,6 +24,7 @@ import TeachingHoursPage from './pages/Reports/TeachingHoursPage';
 import CoursesHubPage from './pages/Courses/CoursesHubPage';
 import CourseManagement from './pages/Courses/CourseManagement';
 import CurriculumManagement from './pages/Courses/CurriculumManagement';
+import FinancePage from './pages/Finance/FinancePage';
 
 // Initialize React Query Client
 const queryClient = new QueryClient();
@@ -32,7 +34,8 @@ const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 function AppRoutes() {
   return (
     <Router>
-      <Routes>
+      <SessionIdleGuard>
+        <Routes>
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -65,6 +68,7 @@ function AppRoutes() {
 
         {/* CRM & HR (staff-facing) */}
         <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'STAFF']} />}>
+          <Route path="/finance" element={<FinancePage />} />
           <Route path="/crm/leads" element={<LeadsPage />} />
           <Route path="/crm/students" element={<StudentListPage />} />
           <Route path="/crm/students/manage" element={<StudentManagement />} />
@@ -74,7 +78,8 @@ function AppRoutes() {
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+        </Routes>
+      </SessionIdleGuard>
     </Router>
   );
 }

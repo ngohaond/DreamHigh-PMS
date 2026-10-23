@@ -41,7 +41,7 @@ development_status:
   epic-2: in-progress
   2-1-ho-so-hoc-vien: review
   2-2-thay-doi-trang-thai-lo-trinh: review
-  2-3-ghi-nhan-placement-test: ready-for-dev
+  2-3-ghi-nhan-placement-test: review
   epic-2-retrospective: optional
   epic-3: in-progress
   3-1-xep-lich-lop-hoc: ready-for-dev
@@ -56,9 +56,9 @@ development_status:
   4-4-canh-bao-chuyen-can: ready-for-dev
   epic-4-retrospective: optional
   epic-5: in-progress
-  5-1-cau-hinh-khung-hoc-phi: ready-for-dev
-  5-2-thiet-lap-uu-dai: ready-for-dev
-  5-3-ghi-nhan-thu-tien: ready-for-dev
-  5-4-xuat-phieu-thu: ready-for-dev
-  5-5-dashboard-no-hoc-phi: ready-for-dev
+  5-1-cau-hinh-khung-hoc-phi: review
+  5-2-thiet-lap-uu-dai: review
+  5-3-ghi-nhan-thu-tien: review
+  5-4-xuat-phieu-thu: review
+  5-5-dashboard-no-hoc-phi: review
   epic-5-retrospective: optional

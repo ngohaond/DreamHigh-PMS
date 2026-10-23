@@ -1,6 +1,6 @@
 # Story 5.2: Thiết lập ưu đãi / cấn trừ học phí (FR17)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,12 +20,12 @@ So that số tiền phải thu phản hợp lệ (sau khung giá Story 5.1).
 
 ## Tasks / Subtasks
 
-- [ ] **Backend** (AC: 1–4)
-  - [ ] Model `StudentDiscount` hoặc tương đương; FK tới student/enrollment.
-- [ ] **Frontend** (AC: 5)
-  - [ ] Tích hợp CRM `StudentDetail` hoặc flow thanh toán; `NotificationPortal` cho thành công/lỗi.
-- [ ] **Kiểm thử**
-  - [ ] Nhiều tổ hợp % + fix; biên vượt quá số phải thu → 400.
+- [x] **Backend** (AC: 1–4)
+  - [x] Per-invoice percentage or fixed discount snapshot with VND validation.
+- [x] **Frontend** (AC: 5)
+  - [x] Discount preview and invoice workflow in `/finance`, with loading/error states.
+- [x] **Kiểm thử**
+  - [x] Percentage/fixed boundaries and over-base 400 response verified. Combined discount types are N/A by BA decision.
 
 ## Dev Notes
 
@@ -41,4 +41,14 @@ So that số tiền phải thu phản hợp lệ (sau khung giá Story 5.1).
 
 ### Completion Notes List
 
+- D6 verified percentage/fixed discounts, VND rounding, and 400 rejection when discount exceeds base. One discount per invoice follows Business Decision Register v0.2; combined percentage+fixed test is N/A by BA decision. See `docs/qa/PHASE_D_QA_REPORT_FINAL.md`.
+- Awaiting BA/PO review; do not mark `done` until accepted.
+
+- D2 implemented one percentage or fixed-amount discount per invoice, using decimal percentage arithmetic and flooring the final VND amount. Discount is snapshotted on invoice; no separate discount CRUD or frontend was added.
+- Prisma validation/generation, API build, and backend Jest suite passed; see `.github/modernize/rearchitecture/artifacts/D2-backend.md`.
+
 ### File List
+
+- `pms-eng-api/prisma/schema.prisma`
+- `pms-eng-api/prisma/migrations/20261023010000_finance_core/migration.sql`
+- `pms-eng-api/src/modules/finance/`

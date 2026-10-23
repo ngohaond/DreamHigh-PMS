@@ -223,6 +223,7 @@ const CourseDetail: React.FC<CourseDetailProps> = ({ course, onBack }) => {
       />
 
       <ClassFeedbackModal
+        key={feedbackLesson?.id ?? 'closed'}
         isOpen={!!feedbackLesson}
         lesson={feedbackLesson}
         courseName={course.name}

@@ -284,6 +284,7 @@ const ClassScheduleManagement: React.FC = () => {
         </main>
 
         <ClassModal
+          key={`${isClassModalOpen ? 'open' : 'closed'}-${editingClass?.id ?? 'new'}`}
           isOpen={isClassModalOpen}
           onClose={() => {
             setIsClassModalOpen(false);
@@ -314,6 +315,7 @@ const ClassScheduleManagement: React.FC = () => {
 
         {activeSession && (
           <SessionActionModal
+            key={activeSession.id}
             isOpen
             onClose={() => setActiveSession(null)}
             session={activeSession}
@@ -594,9 +596,6 @@ const CalendarView: React.FC<{
   onRetry: () => void;
   onOpenSession: (s: SessionView) => void;
 }> = ({ sessions, isLoading, isError, errorMessage, onRetry, onOpenSession }) => {
-  if (isLoading) return <LoadingState label="Đang tải lịch tổng hợp..." />;
-  if (isError && errorMessage) return <ErrorState message={errorMessage} onRetry={onRetry} />;
-
   const byCol = useMemo(() => {
     const cols: SessionView[][] = [[], [], [], [], [], [], []];
     sessions.forEach((s) => {
@@ -606,6 +605,9 @@ const CalendarView: React.FC<{
     cols.forEach((list) => list.sort((a, b) => a.localStartTime.localeCompare(b.localStartTime)));
     return cols;
   }, [sessions]);
+
+  if (isLoading) return <LoadingState label="Đang tải lịch tổng hợp..." />;
+  if (isError && errorMessage) return <ErrorState message={errorMessage} onRetry={onRetry} />;
 
   const headers = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
 
@@ -689,6 +691,15 @@ const RoomListView: React.FC<{
   errorMessage: string | null;
   onRetry: () => void;
 }> = ({ rooms, sessions, isLoading, isError, errorMessage, onRetry }) => {
+  const usageByRoom = useMemo(() => {
+    const map: Record<number, number> = {};
+    sessions.forEach((s) => {
+      if (s.status === 'CANCELLED') return;
+      map[s.roomId] = (map[s.roomId] ?? 0) + 1;
+    });
+    return map;
+  }, [sessions]);
+
   if (isLoading) return <LoadingState label="Đang tải danh sách phòng học..." />;
   if (isError && errorMessage) return <ErrorState message={errorMessage} onRetry={onRetry} />;
 
@@ -703,15 +714,6 @@ const RoomListView: React.FC<{
       </Card>
     );
   }
-
-  const usageByRoom = useMemo(() => {
-    const map: Record<number, number> = {};
-    sessions.forEach((s) => {
-      if (s.status === 'CANCELLED') return;
-      map[s.roomId] = (map[s.roomId] ?? 0) + 1;
-    });
-    return map;
-  }, [sessions]);
 
   return (
     <div className="grid animate-fade-in grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

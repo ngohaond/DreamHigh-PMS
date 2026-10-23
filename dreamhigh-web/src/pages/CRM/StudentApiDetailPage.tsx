@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ClipboardCheck, Save } from 'lucide-react';
 import { AppLayout } from '../../design-system/components/layout/AppLayout';
 import { PageHeader } from '../../design-system/components/layout/PageHeader';
 import { Button } from '../../design-system/components/ui/Button';
 import { Card } from '../../design-system/components/ui/Card';
-import { Select, TextArea } from '../../design-system/components/ui/Input';
+import { Input, Select, TextArea } from '../../design-system/components/ui/Input';
 import { apiClient } from '../../services/apiClient';
+import { useAuthStore } from '../../stores/useAuthStore';
 import { studentStatusLabelVi } from '../../utils/crmStudentStatusLabels';
 
 type StudentDetailResponse = {
@@ -30,6 +32,32 @@ type StudentDetailResponse = {
   }>;
 };
 
+type PlacementTestRecord = {
+  id: number;
+  listeningScore: number | string;
+  readingScore: number | string;
+  writingScore: number | string;
+  totalScore: number | string;
+  testDate: string;
+  notes?: string | null;
+  program?: { name: string };
+  recommendedLevel?: { code: string; name: string; program?: { name: string } } | null;
+};
+
+type PlacementTestEnvelope = { data: PlacementTestRecord[] };
+type CatalogOption = { id: number; code: string; name: string };
+
+const scoreFields = [
+  { key: 'listeningScore', label: 'Listening' },
+  { key: 'readingScore', label: 'Reading' },
+  { key: 'writingScore', label: 'Writing' },
+] as const;
+
+const localDateString = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+};
+
 function needsSensitiveReason(target: string): boolean {
   return target === 'DROPPED' || target === 'GRADUATED' || target === 'RESERVED';
 }
@@ -38,11 +66,20 @@ export default function StudentApiDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const authUser = useAuthStore((state) => state.user);
   const numericId = id ? Number.parseInt(id, 10) : NaN;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingTarget, setPendingTarget] = useState<string | null>(null);
   const [reason, setReason] = useState('');
+  const [placementBranchId, setPlacementBranchId] = useState('');
+  const [placementProgramId, setPlacementProgramId] = useState('');
+  const [placementDate, setPlacementDate] = useState(localDateString);
+  const [placementScores, setPlacementScores] = useState({
+    listeningScore: '',
+    readingScore: '',
+    writingScore: '',
+  });
 
   const { data: student, isLoading, isError, error } = useQuery({
     queryKey: ['crm-student', numericId],
@@ -69,8 +106,63 @@ export default function StudentApiDetailPage() {
     },
   });
 
-  const rawEnroll = student?.classEnrollments;
-  const enrollments = Array.isArray(rawEnroll) ? rawEnroll : [];
+  const branchQuery = useQuery({
+    queryKey: ['placement-branches'],
+    queryFn: async () => (await apiClient.get<CatalogOption[]>('/categories/branches')).data,
+  });
+  const programQuery = useQuery({
+    queryKey: ['placement-programs'],
+    queryFn: async () => (await apiClient.get<CatalogOption[]>('/categories/programs')).data,
+  });
+  const placementQuery = useQuery({
+    queryKey: ['crm-student-placement-tests', numericId],
+    enabled: Number.isFinite(numericId),
+    queryFn: async () => {
+      const response = await apiClient.get<PlacementTestEnvelope>(`/students/${numericId}/placement-tests`);
+      return response.data.data;
+    },
+  });
+  const enrollments = Array.isArray(student?.classEnrollments) ? student.classEnrollments : [];
+  const userBranchIds = Array.isArray(authUser?.branchIds) ? authUser.branchIds as number[] : [];
+  const isAdmin = authUser?.roles?.includes('ADMIN') ?? false;
+  const availableBranches = (branchQuery.data ?? []).filter(
+    (branch) => isAdmin || userBranchIds.includes(branch.id),
+  );
+  const programs = programQuery.data ?? [];
+  const enrolledBranchIds = (enrollments as Array<{ trainingClass?: { branchId?: number } }>)
+    .map((enrollment) => enrollment.trainingClass?.branchId)
+    .filter((branchId): branchId is number => branchId !== undefined);
+  const defaultBranch = availableBranches.find((branch) => enrolledBranchIds.includes(branch.id)) ?? availableBranches[0];
+  const effectiveBranchId = placementBranchId || String(defaultBranch?.id ?? '');
+  const effectiveProgramId = placementProgramId || String(programs[0]?.id ?? '');
+  const placementMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post<{ data: PlacementTestRecord }>(
+        `/students/${numericId}/placement-tests`,
+        {
+          branchId: Number(effectiveBranchId),
+          programId: Number(effectiveProgramId),
+          listeningScore: Number(placementScores.listeningScore),
+          readingScore: Number(placementScores.readingScore),
+          writingScore: Number(placementScores.writingScore),
+          testDate: placementDate,
+        },
+      );
+      return response.data.data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['crm-student-placement-tests', numericId] });
+      setPlacementScores({ listeningScore: '', readingScore: '', writingScore: '' });
+    },
+  });
+
+  const placementTests = placementQuery.data ?? [];
+  const scoresValid = scoreFields.every(({ key }) => {
+    const raw = placementScores[key].trim();
+    return /^\d+(\.\d{1,2})?$/.test(raw) && Number.isFinite(Number(raw));
+  });
+  const canSubmitPlacement =
+    Boolean(effectiveBranchId && effectiveProgramId && placementDate) && scoresValid && !placementMutation.isPending;
 
   const allowed = Array.isArray(student?.allowedTransitions) ? student!.allowedTransitions! : [];
   const currentStatus = student?.status ?? '';
@@ -245,6 +337,92 @@ export default function StudentApiDetailPage() {
                 )}
               </ul>
             )}
+          </Card>
+
+          <Card className="p-6 shadow-md">
+            <h2 className="mb-4 flex items-center gap-2 border-b border-midnight/10 pb-2 font-label text-xs font-semibold uppercase tracking-[0.2em] text-gold">
+              <ClipboardCheck size={16} aria-hidden /> Placement test
+            </h2>
+            <form
+              className="space-y-4"
+              onSubmit={(event: FormEvent<HTMLFormElement>) => {
+                event.preventDefault();
+                if (canSubmitPlacement) placementMutation.mutate();
+              }}
+            >
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Select label="Chi nhánh" value={effectiveBranchId} onChange={(event) => setPlacementBranchId(event.target.value)} required>
+                  <option value="">Chọn chi nhánh</option>
+                  {availableBranches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>
+                  ))}
+                </Select>
+                <Select label="Chương trình" value={effectiveProgramId} onChange={(event) => setPlacementProgramId(event.target.value)} required>
+                  <option value="">Chọn chương trình</option>
+                  {programs.map((program) => (
+                    <option key={program.id} value={program.id}>{program.name}</option>
+                  ))}
+                </Select>
+                <Input label="Ngày thi" type="date" value={placementDate} onChange={(event) => setPlacementDate(event.target.value)} required />
+                {scoreFields.map(({ key, label }) => (
+                  <Input
+                    key={key}
+                    label={`${label} (điểm)`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={placementScores[key]}
+                    onChange={(event) => setPlacementScores((scores) => ({ ...scores, [key]: event.target.value }))}
+                    required
+                  />
+                ))}
+              </div>
+              {availableBranches.length === 0 && (
+                <p className="font-body text-sm text-warning">Tài khoản chưa được cấp quyền chi nhánh để ghi nhận placement.</p>
+              )}
+              {placementMutation.isError && (
+                <p className="font-body text-sm text-red-600">
+                  {(placementMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Không lưu được kết quả placement.'}
+                </p>
+              )}
+              <Button type="submit" disabled={!canSubmitPlacement || availableBranches.length === 0 || programs.length === 0}>
+                <Save size={16} aria-hidden />
+                {placementMutation.isPending ? 'Đang lưu...' : 'Lưu và xem gợi ý'}
+              </Button>
+            </form>
+
+            <div className="mt-6 border-t border-midnight/10 pt-4">
+              <h3 className="mb-3 font-label text-xs font-semibold uppercase tracking-wider text-midnight/65">Kết quả đã lưu</h3>
+              {placementQuery.isLoading ? (
+                <p className="font-body text-sm text-midnight/45">Đang tải lịch sử placement...</p>
+              ) : placementQuery.isError ? (
+                <p className="font-body text-sm text-red-600">Không tải được lịch sử placement.</p>
+              ) : placementTests.length === 0 ? (
+                <p className="font-body text-sm text-midnight/45">Chưa có bài kiểm tra xếp lớp.</p>
+              ) : (
+                <ul className="divide-y divide-midnight/10">
+                  {placementTests.map((test) => (
+                    <li key={test.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0">
+                      <div>
+                        <p className="font-body text-sm text-midnight/80">
+                          {new Date(test.testDate).toLocaleDateString('vi-VN')} · {test.program?.name ?? test.recommendedLevel?.program?.name ?? 'Chương trình'}
+                        </p>
+                        <p className="mt-1 font-body text-xs text-midnight/55">
+                          L: {test.listeningScore} · R: {test.readingScore} · W: {test.writingScore} · Tổng: {test.totalScore}
+                        </p>
+                      </div>
+                      {test.recommendedLevel ? (
+                        <span className="rounded-full bg-gold/15 px-3 py-1 font-label text-xs font-semibold text-midnight">
+                          {test.recommendedLevel.code} · {test.recommendedLevel.name}
+                        </span>
+                      ) : (
+                        <span className="font-body text-xs text-midnight/50">Chưa có cấp độ phù hợp theo barem</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </Card>
         </div>
       )}

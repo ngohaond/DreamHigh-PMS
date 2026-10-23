@@ -125,17 +125,17 @@ Endpoint: `PATCH /api/students/:id/status`. State machine: `students/state-machi
 
 ### Story 2.3 — Placement Test & gợi ý cấp độ (FR12)
 
-Endpoint: `POST /api/enrollment/placement-test`, `POST /api/enrollment/leads/:id/convert`.
+Endpoint: `POST /api/students/:id/placement-tests`, `GET /api/students/:id/placement-tests`, `POST /api/enrollment/leads/:id/convert`.
 
 | TC ID | Loại | Ưu tiên | Mô tả | Bước | Kết quả mong đợi | Trace | Trạng thái | Test file |
 |---|---|---|---|---|---|---|---|---|
 | 2.3-TC-01 | Positive | P1 | Convert Lead → Student + Parent | POST convert lead mới | Student ACTIVE, lead CONVERTED, link student | `enrollment.service.convertLeadToStudent` | HAS-CODE | `enrollment.service.spec.ts` |
 | 2.3-TC-02 | Negative | P0 | Convert lead đã CONVERTED | Gọi lần 2 | 400 | `convertLeadToStudent` | HAS-CODE | cùng file |
 | 2.3-TC-03 | Positive | P1 | Tái sử dụng Parent theo SĐT | Parent đã tồn tại cùng phone | Không tạo trùng | `convertLeadToStudent` | HAS-CODE | cùng file |
-| 2.3-TC-04 | Boundary | P1 | Barem: total > 80 → L4 | listening+reading+writing | suggestedLevelCode="L4" | `recordPlacementTest` | HAS-CODE | `enrollment.service.spec.ts` |
-| 2.3-TC-05 | Boundary | P1 | Barem: total ≤ 40 → L1 | Điểm thấp | "L1" | `recordPlacementTest` | HAS-CODE | cùng file |
-| 2.3-TC-06 | Positive | P1 | Lưu placement + recommendedLevelId | POST placement | Có bản ghi DB + level gợi ý | Story 2.3 AC5 | GAP | (schema thiếu `PlacementTest`) |
-| 2.3-TC-07 | Negative | P0 | Map theo bảng Level cấu hình (không hardcode) | Đổi barem | Gợi ý đổi theo cấu hình | Story 2.3 AC3 | GAP | — |
+| 2.3-TC-04 | Boundary | P1 | Total 149 khớp biên trên Level 1 đã cấu hình | POST điểm 50+50+49 | recommendedLevelId = Level 1 | `recordPlacementTest` inclusive bounds | DONE-CODE | `enrollment.service.spec.ts`, `scripts/phase-d-integration.mjs` |
+| 2.3-TC-05 | Boundary | P1 | Total 150 khớp biên dưới Level 2 đã cấu hình | POST điểm 50+50+50 | recommendedLevelId = Level 2 | `recordPlacementTest` inclusive bounds | DONE-CODE | cùng file |
+| 2.3-TC-06 | Positive | P1 | Lưu placement + recommendedLevelId | POST placement, GET history | Bản ghi còn sau request mới + level gợi ý | Story 2.3 AC5 | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 2.3-TC-07 | Positive | P0 | Mapping thay đổi theo barem Level cấu hình, không hardcode | PATCH min/max rồi POST lại cùng tổng | Gợi ý đổi theo cấu hình | Story 2.3 AC3 | DONE-CODE | `scripts/phase-d-integration.mjs` |
 
 ---
 
@@ -230,46 +230,46 @@ Endpoint: `GET /api/classes/:code`.
 
 | TC ID | Loại | Ưu tiên | Mô tả | Bước | Kết quả mong đợi | Trace | Trạng thái | Test file |
 |---|---|---|---|---|---|---|---|---|
-| 5.1-TC-01 | Positive | P0 | Tạo fee plan theo course | POST fee plan | Lưu VND, hiệu lực | Story 5.1 AC1-2 | GAP | `fee-plan.service.spec.ts` |
-| 5.1-TC-02 | Negative | P1 | Số tiền âm | amount < 0 | 400 | Story 5.1 AC4 | GAP | cùng file |
-| 5.1-TC-03 | Positive | P1 | Soft deactivate không phá hóa đơn cũ | Deactivate plan đã dùng | Hóa đơn cũ giữ giá | Story 5.1 AC3 | GAP | cùng file |
+| 5.1-TC-01 | Positive | P0 | Tạo fee plan theo course | POST fee plan | Lưu VND, hiệu lực | Story 5.1 AC1-2 | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 5.1-TC-02 | Negative | P1 | Số tiền âm | amount < 0 | 400 | Story 5.1 AC4 | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 5.1-TC-03 | Positive | P1 | Soft deactivate không phá hóa đơn cũ | Tạo invoice, đổi giá và deactivate fee plan | Hóa đơn cũ giữ snapshot giá | Story 5.1 AC3 | DONE-CODE | `scripts/phase-d-integration.mjs` |
 
 ### Story 5.2 — Ưu đãi / cấn trừ (FR17)
 
 | TC ID | Loại | Ưu tiên | Mô tả | Bước | Kết quả mong đợi | Trace | Trạng thái | Test file |
 |---|---|---|---|---|---|---|---|---|
-| 5.2-TC-01 | Positive | P0 | Giảm % | base 1.000.000, 10% | amountDue 900.000 | Story 5.2 AC4 | GAP | `discount.util.spec.ts` |
-| 5.2-TC-02 | Positive | P0 | Giảm fix amount | base 1.000.000, -100.000 | 900.000 | Story 5.2 AC1 | GAP | cùng file |
-| 5.2-TC-03 | Negative | P0 | Giảm vượt số phải thu | discount > base | Clamp = base / 400 | Story 5.2 AC1 | GAP | cùng file |
-| 5.2-TC-04 | Boundary | P1 | Kết hợp % + fix (thứ tự) | 10% + 50.000 | Theo quy tắc chốt BA | Story 5.2 AC4 | GAP | — |
+| 5.2-TC-01 | Positive | P0 | Giảm % | base 100.001, 12,34% | Discount làm tròn xuống; final 87.661 | Story 5.2 AC4 | DONE-CODE | `finance.service.spec.ts`, `scripts/phase-d-integration.mjs` |
+| 5.2-TC-02 | Positive | P0 | Giảm fixed amount | base 100.001, giảm 10.000 | Final 90.001 | Story 5.2 AC1 | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 5.2-TC-03 | Negative | P0 | Giảm vượt học phí gốc | discount > base | 400; không tạo invoice | Story 5.2 AC1 + BA register v0.2 | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 5.2-TC-04 | N/A-BA | P1 | Kết hợp % + fixed trên cùng invoice | BA chốt tối đa một discount/invoice | Không áp dụng; API chỉ nhận một loại | BA register v0.2 §8 | N/A-BA | — |
 
 ### Story 5.3 — Ghi nhận thu tiền & công nợ (FR18)
 
 | TC ID | Loại | Ưu tiên | Mô tả | Bước | Kết quả mong đợi | Trace | Trạng thái | Test file |
 |---|---|---|---|---|---|---|---|---|
-| 5.3-TC-01 | Positive | P0 | Thu 1 phần → PARTIAL | invoice 1.000.000, thu 400.000 | status PARTIAL, outstanding 600.000 | Story 5.3 AC2 | GAP | `invoice.service.spec.ts` |
-| 5.3-TC-02 | Positive | P0 | Thu đủ → COMPLETED | Thu đủ số còn lại | status COMPLETED, outstanding 0 | Story 5.3 AC2 | GAP | cùng file |
-| 5.3-TC-03 | Negative | P0 | Thu vượt số nợ | Thu > outstanding | 400 (chốt BA) | Story 5.3 | GAP | cùng file |
-| 5.3-TC-04 | Negative | P0 | Idempotency transactionRef trùng | 2 payment cùng externalRef | Chỉ ghi 1 | Story 5.3 AC3 | GAP | cùng file |
-| 5.3-TC-05 | Boundary | P0 | Lỗi giữa transaction → rollback | Payment create lỗi sau ghi ledger | Không có payment mồ côi | Story 5.3 test | GAP | cùng file |
-| 5.3-TC-06 | Positive | P1 | Emit PaymentSuccessEvent | Thu thành công | Event được phát | Story 5.3 AC5 | GAP | — |
+| 5.3-TC-01 | Positive | P0 | Thu một phần → PARTIAL | Thu 30.000 | status PARTIAL, outstanding đúng | Story 5.3 AC2 | DONE-CODE | `finance.service.spec.ts`, `scripts/phase-d-integration.mjs` |
+| 5.3-TC-02 | Positive | P0 | Thu đủ → COMPLETED | Thu nốt số còn lại | status COMPLETED, outstanding 0 | Story 5.3 AC2 | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 5.3-TC-03 | Negative | P0 | Thu vượt số nợ | Thu > outstanding | 400 | Story 5.3 | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 5.3-TC-04 | Negative | P0 | Idempotency/reference trùng | Retry cùng key và reuse externalRef | Chỉ ghi một; conflict khi payload khác/ref trùng | Story 5.3 AC3 | DONE-CODE | `finance.service.spec.ts`, `scripts/phase-d-integration.mjs` |
+| 5.3-TC-05 | Boundary | P0 | Lỗi giữa transaction → rollback | Lỗi audit sau khi tạo payment | Không payment mồ côi; status unchanged | Story 5.3 test | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 5.3-TC-06 | Positive | P1 | Emit PaymentSuccessEvent | Thu thành công; replay idempotent | Phát một lần, replay không phát lại | Story 5.3 AC5 | DONE-CODE | `finance.service.spec.ts` |
 
 ### Story 5.4 — Phiếu thu PDF (FR19)
 
 | TC ID | Loại | Ưu tiên | Mô tả | Bước | Kết quả mong đợi | Trace | Trạng thái | Test file |
 |---|---|---|---|---|---|---|---|---|
-| 5.4-TC-01 | Positive | P0 | Xuất PDF có đủ trường | GET receipt | số phiếu, ngày, HV, số tiền, phương thức, người lập | Story 5.4 | GAP | `receipt.service.spec.ts` |
-| 5.4-TC-02 | UI | P1 | Font tiếng Việt in đúng | Render PDF | Dấu tiếng Việt không lỗi | ACTION_PLAN Phase 3 | GAP | (manual) |
-| 5.4-TC-03 | Security | P0 | Không xuất receipt payment branch khác | Token branch A | 403 | NFR5 | GAP | — |
+| 5.4-TC-01 | Positive | P0 | Xuất PDF có đủ trường | GET receipt | Số phiếu, ngày, HV, số tiền, phương thức, người thu, reference | Story 5.4 | DONE-CODE | `receipt.service.spec.ts`, `scripts/phase-d-integration.mjs` |
+| 5.4-TC-02 | UI | P1 | Font tiếng Việt in đúng | Render PDF | Dấu tiếng Việt đúng; logo DreamHigh | ACTION_PLAN Phase 3 | DONE-CODE | D3 visual check, embedded-font test |
+| 5.4-TC-03 | Security | P0 | Không xuất receipt payment branch khác | Token branch A đọc payment branch B | 403 trước khi load/render receipt | NFR5 | DONE-CODE | `receipt.service.spec.ts`, `scripts/phase-d-integration.mjs` |
 
 ### Story 5.5 — Dashboard nợ học phí (FR20)
 
 | TC ID | Loại | Ưu tiên | Mô tả | Bước | Kết quả mong đợi | Trace | Trạng thái | Test file |
 |---|---|---|---|---|---|---|---|---|
-| 5.5-TC-01 | Positive | P0 | Tổng nợ / số HV nợ / quá hạn | GET /reports/arrears | Chỉ số khớp dữ liệu | Story 5.5 AC1 | GAP | `arrears.service.spec.ts` |
-| 5.5-TC-02 | Security | P0 | Filter branch isolation | Manager branch A | Không thấy nợ branch B | Story 5.5 AC4 | GAP | cùng file |
-| 5.5-TC-03 | Boundary | P1 | Phân loại Đúng hạn / Quá hạn theo dueDate | dueDate < now | Status Quá hạn | Story 5.5 AC2 | GAP | cùng file |
-| 5.5-TC-04 | UI | P2 | Export Excel nợ (NFR3) | Nút export | File .xlsx đúng | NFR3 | GAP | — |
+| 5.5-TC-01 | Positive | P0 | Tổng nợ / số HV nợ / quá hạn | GET /reports/arrears | Totals và rows khớp payment-derived outstanding | Story 5.5 AC1 | DONE-CODE | `arrears.service.spec.ts`, `scripts/phase-d-integration.mjs` |
+| 5.5-TC-02 | Security | P0 | Filter branch isolation | Branch A truy vấn Branch B | Không thấy nợ branch B; 403 | Story 5.5 AC4 | DONE-CODE | `scripts/phase-d-integration.mjs` |
+| 5.5-TC-03 | Boundary | P1 | Phân loại Đúng hạn / Quá hạn theo dueDate | dueDate < today | Status OVERDUE | Story 5.5 AC2 | DONE-CODE | `arrears.service.spec.ts`, `scripts/phase-d-integration.mjs` |
+| 5.5-TC-04 | UI | P2 | Export Excel nợ (NFR3) | Xuất toàn bộ kết quả lọc | XLSX ZIP artifact chứa dữ liệu | NFR3 | DONE-CODE | Browser flow, `FinancePage.tsx` |
 
 ---
 
@@ -288,17 +288,17 @@ Endpoint: `GET /api/classes/:code`.
 | FR9 | 3.2 | 4 | 0 | 4 GAP |
 | FR10 | 3.3 | 3 | 0 | 3 GAP |
 | FR11 | 3.4 | 3 | 0 | 3 GAP |
-| FR12 | 2.3 | 7 | 5 (cần gen) | PlacementTest schema |
+| FR12 | 2.3 | 7 | 7 DONE-CODE | Persistence, configured Level bounds, branch scope verified in D6 |
 | FR13 | 4.2 | 5 | 0 | 5 GAP |
 | FR14 | 4.4 | 5 | 0 | 5 GAP |
 | FR15 | 4.3 | 4 | 0 | 4 GAP |
-| FR16 | 5.1 | 3 | 0 | 3 GAP |
-| FR17 | 5.2 | 4 | 0 | 4 GAP |
-| FR18 | 5.3 | 6 | 0 | 6 GAP |
-| FR19 | 5.4 | 3 | 0 | 3 GAP |
-| FR20 | 5.5 | 4 | 0 | 4 GAP (+Finance module chưa có) |
+| FR16 | 5.1 | 3 | 3 DONE-CODE | CRUD, negative amount, invoice snapshot preservation |
+| FR17 | 5.2 | 4 | 3 DONE-CODE + 1 N/A-BA | Percent/fixed/reject over-base; combined discount disallowed by BA |
+| FR18 | 5.3 | 6 | 6 DONE-CODE | Transaction, event, idempotency, rollback verified |
+| FR19 | 5.4 | 3 | 3 DONE-CODE | PDF, Unicode/logo, branch authorization verified |
+| FR20 | 5.5 | 4 | 4 DONE-CODE | Totals, isolation, overdue, XLSX verified |
 
-**Tổng: 109 test case.** Đã có code backend: 44 (8 DONE-CODE + 36 HAS-CODE). GAP: 65 (chủ yếu Epic 3–5).
+**Phase D coverage:** 27 test cases; 26 DONE-CODE, 1 N/A-BA, 0 GAP. Tổng số test toàn suite vẫn là 109; các ma trận ngoài Phase D giữ trạng thái kiểm kê trước đó.
 
 ---
 
@@ -308,7 +308,7 @@ Endpoint: `GET /api/classes/:code`.
 |---|---|---|---|---|
 | X-TC-01 | Security | P0 | Mọi mutation chính dùng DTO, `forbidNonWhitelisted: true` | GAP (main.ts chưa bật) |
 | X-TC-02 | Security | P0 | Envelope chuẩn `{ statusCode, message, data, meta }` toàn API | GAP (discrepancy categories/classes) |
-| X-TC-03 | Security | P0 | Branch isolation test integration PostgreSQL | GAP |
+| X-TC-03 | Security | P0 | Branch isolation test integration PostgreSQL | Partial — finance/placement verified in isolated PostgreSQL; other modules remain |
 | X-TC-04 | Security | P0 | Không trả `passwordHash`, `googleSub`, raw Prisma error | Partial (to-public-user) |
 | X-TC-05 | Security | P0 | Rate limit login/register | GAP |
 | X-TC-06 | Perf | P2 | 10.000 HV vẫn < 2s grid, < 5s report | GAP |

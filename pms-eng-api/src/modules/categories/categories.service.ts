@@ -90,6 +90,7 @@ export class CategoriesService {
     const sortOrder = Number.isFinite(rawSo) ? rawSo : 0;
     if (!code || !name) throw new BadRequestException('Mã và tên cấp độ là bắt buộc');
     if (!Number.isFinite(programId)) throw new BadRequestException('programId không hợp lệ');
+    const placementBounds = this.parsePlacementBounds(data.minPlacementScore, data.maxPlacementScore);
     const existing = await this.prisma.level.findFirst({
       where: { programId, code },
     });
@@ -101,6 +102,7 @@ export class CategoriesService {
         name,
         sortOrder,
         status: data.status ?? 'ACTIVE',
+        ...placementBounds,
       },
     });
   }
@@ -108,14 +110,40 @@ export class CategoriesService {
   async updateLevel(id: number, data: any) {
     const row = await this.prisma.level.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('Cấp độ không tồn tại');
+    const placementBounds =
+      data.minPlacementScore !== undefined || data.maxPlacementScore !== undefined
+        ? this.parsePlacementBounds(data.minPlacementScore, data.maxPlacementScore)
+        : {};
     return this.prisma.level.update({
       where: { id },
       data: {
         ...(data.name != null ? { name: normalizeCatalogName(data.name) } : {}),
         ...(data.sortOrder != null ? { sortOrder: Number(data.sortOrder) } : {}),
         ...(data.status != null ? { status: data.status } : {}),
+        ...placementBounds,
       },
     });
+  }
+
+  private parsePlacementBounds(minimum: unknown, maximum: unknown) {
+    if (minimum == null && maximum == null) {
+      return { minPlacementScore: null, maxPlacementScore: null };
+    }
+    if (minimum == null || maximum == null) {
+      throw new BadRequestException('Cần cấu hình đồng thời điểm barem tối thiểu và tối đa');
+    }
+
+    const minPlacementScore = Number(minimum);
+    const maxPlacementScore = Number(maximum);
+    if (
+      !Number.isFinite(minPlacementScore) ||
+      !Number.isFinite(maxPlacementScore) ||
+      minPlacementScore < 0 ||
+      maxPlacementScore < minPlacementScore
+    ) {
+      throw new BadRequestException('Khoảng điểm barem không hợp lệ');
+    }
+    return { minPlacementScore, maxPlacementScore };
   }
 
   async softDeleteLevel(id: number) {

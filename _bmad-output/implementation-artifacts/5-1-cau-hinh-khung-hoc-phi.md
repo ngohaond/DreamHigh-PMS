@@ -1,6 +1,6 @@
 # Story 5.1: Cấu hình khung học phí gốc (FR16)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -20,13 +20,13 @@ So that mọi giao dịch thu và công nợ có mốc giá thống nhất trư�
 
 ## Tasks / Subtasks
 
-- [ ] **Backend** (AC: 1–4)
-  - [ ] Prisma models: ví dụ `TuitionFrame`, `CoursePricing` — đặt tên theo schema thực tế.
-  - [ ] REST CRUD + `GET` theo filter course/class.
-- [ ] **Frontend**
-  - [ ] Màn cấu hình trong hub Khóa học / Tài chính (route tạo khi có module — ví dụ `/courses/manage` + tab học phí hoặc trang `/finance/tuition-frames`); DS components.
-- [ ] **Kiểm thử**
-  - [ ] Tạo khung giá → hiển thị khi tạo giao dịch (Story 5.3).
+- [x] **Backend** (AC: 1–4)
+  - [x] FeePlan schema, validation and branch ownership.
+  - [x] REST CRUD/read/filter and soft deactivate.
+- [x] **Frontend**
+  - [x] Fee-plan management in `/finance` using the design system.
+- [x] **Kiểm thử**
+  - [x] Create/update/deactivate, negative amount and invoice snapshot preservation verified.
 
 ## Dev Notes
 
@@ -46,4 +46,14 @@ So that mọi giao dịch thu và công nợ có mốc giá thống nhất trư�
 
 ### Completion Notes List
 
+- D2 backend and D5 UI are implemented. D6 verified create/update/deactivate, negative amount rejection, and that an existing invoice keeps its price snapshot after plan update/deactivation. See `docs/qa/PHASE_D_QA_REPORT_FINAL.md`.
+- Awaiting BA/PO review; do not mark `done` until accepted.
+
+- D2 backend implemented fee-plan CRUD, branch/course/class validation, VND integer amount, effective date, and soft deactivation. Frontend and D6 acceptance remain.
+- Prisma validation/generation, API build, and backend Jest suite passed; see `.github/modernize/rearchitecture/artifacts/D2-backend.md`.
+
 ### File List
+
+- `pms-eng-api/prisma/schema.prisma`
+- `pms-eng-api/prisma/migrations/20261023010000_finance_core/migration.sql`
+- `pms-eng-api/src/modules/finance/`

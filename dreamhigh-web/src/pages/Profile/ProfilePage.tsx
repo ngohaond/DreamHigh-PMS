@@ -56,8 +56,9 @@ export default function ProfilePage() {
       reset();
       setTimeout(() => setSuccessMsg(''), 5000);
     },
-    onError: (err: any) => {
-      setErrorMsg(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
+    onError: (err: unknown) => {
+      const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+      setErrorMsg(typeof message === 'string' ? message : 'Có lỗi xảy ra, vui lòng thử lại.');
       setSuccessMsg('');
     }
   });

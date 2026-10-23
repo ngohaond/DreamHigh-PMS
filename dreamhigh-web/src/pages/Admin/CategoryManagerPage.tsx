@@ -6,30 +6,34 @@ import { Card } from '../../design-system/components/ui/Card';
 import { Tabs } from '../../design-system/components/ui/Tabs';
 import { apiClient } from '../../services/apiClient';
 
+interface ProgramRow { id: number; code: string; name: string; status: string }
+interface LevelRow { id: number; code: string; name: string; program?: { name: string } | null }
+interface RoomRow { id: number; roomCode: string; name: string | null; capacity: number }
+
 export default function CategoryManagerPage() {
   const [activeTab, setActiveTab] = useState('programs');
 
-  const { data: programs, isLoading: isLoadingPrograms, error: errorPrograms } = useQuery({
+  const { data: programs = [], isLoading: isLoadingPrograms, error: errorPrograms } = useQuery<ProgramRow[]>({
     queryKey: ['admin-programs'],
     queryFn: async () => {
       const resp = await apiClient.get('/categories/programs');
-      return resp.data;
+      return resp.data as ProgramRow[];
     },
   });
 
-  const { data: levels, isLoading: isLoadingLevels, error: errorLevels } = useQuery({
+  const { data: levels = [], isLoading: isLoadingLevels, error: errorLevels } = useQuery<LevelRow[]>({
     queryKey: ['admin-levels'],
     queryFn: async () => {
       const resp = await apiClient.get('/categories/levels');
-      return resp.data;
+      return resp.data as LevelRow[];
     },
   });
 
-  const { data: rooms, isLoading: isLoadingRooms, error: errorRooms } = useQuery({
+  const { data: rooms = [], isLoading: isLoadingRooms, error: errorRooms } = useQuery<RoomRow[]>({
     queryKey: ['admin-rooms'],
     queryFn: async () => {
       const resp = await apiClient.get('/categories/rooms');
-      return resp.data;
+      return resp.data as RoomRow[];
     },
   });
 
@@ -73,7 +77,7 @@ export default function CategoryManagerPage() {
                 ) : errorPrograms ? (
                   <tr><td colSpan={3} className="px-6 py-12 text-center text-error">Không thể tải danh sách chương trình.</td></tr>
                 ) : (
-                  programs?.map((program: any) => (
+                  programs.map((program) => (
                     <tr key={program.id} className="hover:bg-midnight/[0.02] transition-colors group text-right">
                       <td className="px-6 py-4 text-left font-medium text-gold/80">{program.code}</td>
                       <td className="px-6 py-4 text-left font-body text-base text-midnight/90">{program.name}</td>
@@ -112,7 +116,7 @@ export default function CategoryManagerPage() {
                 ) : errorLevels ? (
                   <tr><td colSpan={3} className="px-6 py-12 text-center text-error">Không thể tải danh sách cấp độ.</td></tr>
                 ) : (
-                  levels?.map((level: any) => (
+                  levels.map((level) => (
                     <tr key={level.id} className="hover:bg-midnight/[0.02] transition-colors group text-right">
                       <td className="px-6 py-4 text-left font-medium text-gold/80">{level.code}</td>
                       <td className="px-6 py-4 text-left font-body text-base text-midnight/90">{level.name}</td>
@@ -134,7 +138,7 @@ export default function CategoryManagerPage() {
               ) : errorRooms ? (
                 <div className="col-span-full py-12 text-center text-error">Không thể tải danh sách phòng.</div>
               ) : (
-                rooms?.map((room: any) => (
+                rooms.map((room) => (
                   <Card key={room.id} className="p-6 ghost-border bg-surface hover:border-gold/30 hover:shadow-md transition-all group">
                      <div className="flex justify-between items-start mb-4">
                         <span className="font-label text-base tracking-widest text-gold">{room.roomCode}</span>

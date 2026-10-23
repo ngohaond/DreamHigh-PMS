@@ -112,6 +112,11 @@ enum PaymentMethod {
   OTHER
 }
 
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
 // ---------------------------------------------------------------------------
 // Organization & RBAC
 // ---------------------------------------------------------------------------
@@ -128,6 +133,11 @@ model Branch {
   rooms        Room[]
   userBranches UserBranch[]
   classes      TrainingClass[]
+  placementTests PlacementTest[]
+  feePlans     FeePlan[]
+  invoices     Invoice[]
+  payments     Payment[]
+  invoiceSequences InvoiceSequence[]
 
   @@map("branches")
 }
@@ -269,6 +279,7 @@ model Student {
   grades           Grade[]
   invoices         Invoice[]
   statusHistory    StudentStatusHistory[]
+  placementTests   PlacementTest[]
 
   @@index([parentId])
   @@map("students")
@@ -320,6 +331,7 @@ model Program {
   status      CatalogStatus @default(ACTIVE)
 
   levels Level[]
+  placementTests PlacementTest[]
 
   @@map("programs")
 }
@@ -331,13 +343,40 @@ model Level {
   name      String        @db.VarChar(255)
   sortOrder Int           @map("sort_order")
   status    CatalogStatus @default(ACTIVE)
+  minPlacementScore Decimal? @map("min_placement_score") @db.Decimal(8, 2)
+  maxPlacementScore Decimal? @map("max_placement_score") @db.Decimal(8, 2)
 
   program Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
   courses Course[]
+  placementTests PlacementTest[]
 
   @@unique([programId, code])
   @@index([programId])
   @@map("levels")
+}
+
+model PlacementTest {
+  id                 Int      @id @default(autoincrement())
+  studentId          Int      @map("student_id")
+  branchId           Int      @map("branch_id")
+  programId          Int      @map("program_id")
+  listeningScore     Decimal  @map("listening_score") @db.Decimal(8, 2)
+  readingScore       Decimal  @map("reading_score") @db.Decimal(8, 2)
+  writingScore       Decimal  @map("writing_score") @db.Decimal(8, 2)
+  totalScore         Decimal  @map("total_score") @db.Decimal(8, 2)
+  testDate           DateTime @map("test_date") @db.Date
+  recommendedLevelId Int?     @map("recommended_level_id")
+  notes              String?  @db.VarChar(2000)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  student          Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  branch           Branch  @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  program          Program @relation(fields: [programId], references: [id], onDelete: Restrict)
+  recommendedLevel Level?   @relation(fields: [recommendedLevelId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, testDate])
+  @@index([branchId, testDate])
+  @@map("placement_tests")
 }
 
 /// Loại lớp (master data — FR1)
@@ -363,6 +402,7 @@ model Course {
 
   level   Level           @relation(fields: [levelId], references: [id], onDelete: Cascade)
   classes TrainingClass[]
+  feePlans FeePlan[]
 
   @@index([levelId])
   @@map("courses")
@@ -391,6 +431,7 @@ model TrainingClass {
   sessions    Session[]
   exams       Exam[]
   invoices    Invoice[]
+  feePlans    FeePlan[]
 
   @@index([branchId])
   @@index([courseId])
@@ -517,21 +558,63 @@ model Grade {
 // Finance
 // ---------------------------------------------------------------------------
 
+model FeePlan {
+  id            Int      @id @default(autoincrement())
+  branchId      Int      @map("branch_id")
+  courseId      Int      @map("course_id")
+  classId       Int?     @map("class_id")
+  name          String   @db.VarChar(255)
+  amount        Int
+  effectiveFrom DateTime @default(now()) @map("effective_from") @db.Date
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  branch        Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  course        Course        @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  trainingClass TrainingClass? @relation(fields: [classId], references: [id], onDelete: Restrict)
+  invoices      Invoice[]
+
+  @@index([branchId, isActive])
+  @@index([courseId, isActive])
+  @@index([classId, isActive])
+  @@map("fee_plans")
+}
+
+model InvoiceSequence {
+  branchId   Int @map("branch_id")
+  year       Int
+  lastNumber Int @default(0) @map("last_number")
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
+
+  @@id([branchId, year])
+  @@map("invoice_sequences")
+}
+
 model Invoice {
   id             Int                  @id @default(autoincrement())
   invoiceNumber  String               @unique @map("invoice_number") @db.VarChar(50)
   studentId      Int                  @map("student_id")
+  branchId       Int?                 @map("branch_id")
   classId        Int?                 @map("class_id")
+  feePlanId      Int?                 @map("fee_plan_id")
   issueDate      DateTime             @map("issue_date") @db.Date
   dueDate        DateTime?            @map("due_date") @db.Date
   totalAmount    Decimal              @map("total_amount") @db.Decimal(12, 2)
   discountAmount Decimal?             @map("discount_amount") @db.Decimal(12, 2)
   finalAmount    Decimal              @map("final_amount") @db.Decimal(12, 2)
+  baseAmountSnapshot Int?             @map("base_amount_snapshot")
+  feePlanNameSnapshot String?         @map("fee_plan_name_snapshot") @db.VarChar(255)
+  discountType   DiscountType?        @map("discount_type")
+  discountValue  Decimal?             @map("discount_value") @db.Decimal(38, 18)
   paymentStatus  InvoicePaymentStatus @default(PENDING) @map("payment_status")
   notes          String?              @db.VarChar(2000)
 
   student       Student        @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  branch        Branch?        @relation(fields: [branchId], references: [id], onDelete: Restrict)
   trainingClass TrainingClass? @relation(fields: [classId], references: [id], onDelete: SetNull)
+  feePlan       FeePlan?       @relation(fields: [feePlanId], references: [id], onDelete: SetNull)
   payments      Payment[]
 
   @@index([studentId])
@@ -543,16 +626,21 @@ model Invoice {
 model Payment {
   id             Int           @id @default(autoincrement())
   invoiceId      Int           @map("invoice_id")
+  branchId       Int?          @map("branch_id")
   amount         Decimal       @db.Decimal(12, 2)
   paymentMethod  PaymentMethod @map("payment_method")
   paidAt         DateTime      @map("paid_at")
   transactionRef String?       @map("transaction_ref") @db.VarChar(100)
+  idempotencyKey String?       @unique @map("idempotency_key") @db.VarChar(128)
+  requestHash    String?       @map("request_hash") @db.VarChar(64)
   notes          String?       @db.VarChar(1000)
 
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  branch  Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@index([invoiceId])
   @@index([paidAt])
+  @@unique([branchId, transactionRef])
   @@map("payments")
 }
 

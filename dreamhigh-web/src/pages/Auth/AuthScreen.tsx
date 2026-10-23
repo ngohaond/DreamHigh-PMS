@@ -103,7 +103,8 @@ export default function AuthScreen({ initialMode = 'login' }: AuthScreenProps) {
       const rolesFromNested =
         u.userRoles?.map((ur) => ur.role?.code).filter((c): c is string => Boolean(c)) ?? [];
       const roles = u.roles && u.roles.length > 0 ? u.roles : rolesFromNested;
-      const { userRoles: _nested, ...userRest } = u;
+      const userRest = { ...u };
+      delete userRest.userRoles;
       setAuthData({ ...userRest, roles }, resData.data.accessToken);
       navigate('/dashboard');
     },

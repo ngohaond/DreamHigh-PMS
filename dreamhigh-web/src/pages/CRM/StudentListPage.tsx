@@ -8,11 +8,20 @@ import { Card } from '../../design-system/components/ui/Card';
 import { Input } from '../../design-system/components/ui/Input';
 import { apiClient } from '../../services/apiClient';
 
-function normalizeListPayload(raw: unknown): unknown[] {
-  if (Array.isArray(raw)) return raw;
+interface StudentListItem {
+  id: number;
+  fullName: string;
+  studentCode: string;
+  dob: string;
+  status: string;
+  parent?: { fullName?: string | null; phone?: string | null } | null;
+}
+
+function normalizeListPayload<T>(raw: unknown): T[] {
+  if (Array.isArray(raw)) return raw as T[];
   if (raw && typeof raw === 'object' && 'data' in raw) {
-    const d = (raw as { data?: unknown }).data;
-    return Array.isArray(d) ? d : [];
+    const data = (raw as { data?: unknown }).data;
+    return Array.isArray(data) ? data as T[] : [];
   }
   return [];
 }
@@ -35,7 +44,7 @@ export default function StudentListPage() {
     },
   });
 
-  const students = normalizeListPayload(studentsRaw);
+  const students = normalizeListPayload<StudentListItem>(studentsRaw);
 
   return (
     <AppLayout>
@@ -82,7 +91,7 @@ export default function StudentListPage() {
                 </td>
               </tr>
             ) : (
-              students.map((student: any) => (
+              students.map((student) => (
                 <tr
                   key={student.id}
                   role="button"

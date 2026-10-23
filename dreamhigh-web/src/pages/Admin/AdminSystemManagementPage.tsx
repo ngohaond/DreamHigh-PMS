@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '../../design-system/components/layout/AppLayout';
 import { PageHeader } from '../../design-system/components/layout/PageHeader';
@@ -103,6 +103,9 @@ const AdminSystemManagementPage: React.FC = () => {
       }),
     [apiRoles],
   );
+  const effectiveSelectedRoleId = roles.some((role) => role.id === selectedRoleId)
+    ? selectedRoleId
+    : roles[0]?.id ?? '';
 
   const { data: branchesRaw = [] } = useQuery({
     queryKey: ['catalog-branches'],
@@ -132,12 +135,6 @@ const AdminSystemManagementPage: React.FC = () => {
       })),
     [branchesRaw],
   );
-
-  useEffect(() => {
-    if (roles.length && !roles.some((r) => r.id === selectedRoleId)) {
-      setSelectedRoleId(roles[0].id);
-    }
-  }, [roles, selectedRoleId]);
 
   const handleOpenCreateUser = () => {
     setUserModalNonce((n) => n + 1);
@@ -259,7 +256,7 @@ const AdminSystemManagementPage: React.FC = () => {
   };
 
   const handleTogglePermission = (moduleId: string, field: PermissionField) => {
-    const selected = rolesState.find((r) => r.id === selectedRoleId);
+    const selected = rolesState.find((r) => r.id === effectiveSelectedRoleId);
     if (selected?.code === 'ADMIN') {
       setMessage({
         code: 'WARN-RBAC',
@@ -271,7 +268,7 @@ const AdminSystemManagementPage: React.FC = () => {
 
     setRolesState((prev) =>
       prev.map((role) => {
-        if (role.id !== selectedRoleId) return role;
+        if (role.id !== effectiveSelectedRoleId) return role;
         const next = [...role.permissions];
         const idx = next.findIndex((p) => p.moduleId === moduleId);
         if (idx !== -1) {
@@ -295,7 +292,7 @@ const AdminSystemManagementPage: React.FC = () => {
   };
 
   const handleSaveRoles = () => {
-    const selected = rolesState.find((r) => r.id === selectedRoleId);
+    const selected = rolesState.find((r) => r.id === effectiveSelectedRoleId);
     setMessage({
       code: 'ADM-RBAC-200',
       text: `Đã lưu cấu hình phân quyền cho vai trò ${selected?.name ?? ''}.`,
@@ -372,7 +369,7 @@ const AdminSystemManagementPage: React.FC = () => {
         {activeTab === 'roles' && !loadRoles && rolesState.length > 0 ? (
           <AdminRolesTab
             roles={rolesState}
-            selectedRoleId={selectedRoleId}
+            selectedRoleId={effectiveSelectedRoleId}
             onSelectRole={setSelectedRoleId}
             onTogglePermission={handleTogglePermission}
             onSave={handleSaveRoles}

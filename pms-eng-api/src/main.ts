@@ -1,23 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
-
-function corsOrigins(): string[] {
-  const raw = process.env.CORS_ORIGINS?.trim();
-  if (raw) {
-    return raw
-      .split(',')
-      .map((o) => o.trim())
-      .filter(Boolean);
-  }
-  return ['http://localhost:5175', 'http://127.0.0.1:5175'];
-}
+import { resolveCorsOrigins, resolveTrustedProxyHops } from './common/security/security-config';
+import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.use(requestIdMiddleware);
+  app.use(helmet());
+  app.getHttpAdapter().getInstance().set('trust proxy', resolveTrustedProxyHops());
   app.enableCors({
-    origin: corsOrigins(),
+    origin: resolveCorsOrigins(),
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -27,6 +22,7 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       transform: true,
+      forbidNonWhitelisted: true,
     }),
   );
 

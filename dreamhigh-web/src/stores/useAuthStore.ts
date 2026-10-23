@@ -6,7 +6,10 @@ type UserData = {
   email: string;
   fullName: string;
   roles?: string[];
-  [key: string]: any;
+  branchIds?: number[];
+  phone?: string | null;
+  username?: string;
+  status?: string;
 };
 
 interface AuthState {

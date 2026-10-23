@@ -8,11 +8,21 @@ import { Card } from '../design-system/components/ui/Card';
 import { Tabs } from '../design-system/components/ui/Tabs';
 import { apiClient } from '../services/apiClient';
 
+interface ClassDetailsData {
+  id: number;
+  maxStudents: number;
+  status: string;
+  course?: { name?: string | null } | null;
+  teacher?: { fullName?: string | null; email?: string | null; status?: string | null } | null;
+  enrollments?: Array<{ id: number; student?: { fullName?: string | null; studentCode?: string | null } | null }> | null;
+  sessions?: Array<{ id: number; startTime: string; topicNote?: string | null }> | null;
+}
+
 export const ClassDetailsPage: React.FC = () => {
   const { id: classCode } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: classData, isLoading, isError, refetch } = useQuery({
+  const { data: classData, isLoading, isError, refetch } = useQuery<{ data: ClassDetailsData }>({
     queryKey: ['class', classCode],
     queryFn: async () => {
       const response = await apiClient.get(`/classes/${classCode}`);
@@ -126,7 +136,7 @@ export const ClassDetailsPage: React.FC = () => {
             <Card className="p-8 h-72 shadow-md flex flex-col">
               <h4 className="font-label uppercase tracking-ultra text-[10px] text-gold mb-6">Học viên tiêu biểu ({cls.enrollments?.length || 0})</h4>
               <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
-                {cls.enrollments?.map((enrollment: any) => (
+                {cls.enrollments?.map((enrollment) => (
                    <div key={enrollment.id} className="pb-3 border-b border-black/5 flex justify-between items-center group hover:bg-midnight/[0.02] transition-colors -mx-2 px-2 py-1 rounded-lg">
                      <span className="font-body text-base text-midnight/90 font-medium">{enrollment.student?.fullName}</span>
                      <span className="font-label text-[10px] tracking-widest text-gold bg-gold/5 px-2 py-1 rounded-md">{enrollment.student?.studentCode}</span>
@@ -140,7 +150,7 @@ export const ClassDetailsPage: React.FC = () => {
               <h4 className="font-label uppercase tracking-ultra text-[10px] text-gold mb-6">Lịch sử giảng dạy</h4>
               <div className="space-y-4 overflow-y-auto flex-1 pr-2 custom-scrollbar">
                 {cls.sessions?.length === 0 ? <p className="text-midnight/20 text-sm italic">Chưa có buổi học nào được ghi nhận</p> : null}
-                {cls.sessions?.map((session: any) => (
+                {cls.sessions?.map((session) => (
                    <div key={session.id} className="pb-3 border-b border-black/5 pt-1">
                      <span className="font-body text-base text-midnight/90 font-medium">{new Date(session.startTime).toLocaleDateString('vi-VN')}</span>
                      <p className="text-midnight/40 text-xs mt-1 line-clamp-1">{session.topicNote || 'Không có ghi chú chủ đề'}</p>

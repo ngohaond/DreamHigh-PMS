@@ -211,12 +211,12 @@ export const MODULES: DashboardModuleDef[] = [
   },
   {
     id: 'finance',
-    route: '/dashboard',
+    route: '/finance',
     title: 'Tài chính',
     description: 'Thu phí, chi phí và công nợ',
     iconName: 'Wallet',
     accent: 'success',
-    roles: ['ADMIN', 'MANAGER'],
+    roles: ['ADMIN', 'MANAGER', 'STAFF'],
   },
   {
     id: 'reports',

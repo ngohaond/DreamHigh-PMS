@@ -1,8 +1,12 @@
-import { Controller, Post, Param, Body, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Request, UseGuards } from '@nestjs/common';
 import { EnrollmentService } from './enrollment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CreatePlacementTestDto } from './dto/create-placement-test.dto';
+import type { EnrollmentAuthUser } from './enrollment.service';
+
+type RequestWithUser = { user: EnrollmentAuthUser };
 
 @Controller('enrollment')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -18,9 +22,26 @@ export class EnrollmentController {
     return this.enrollmentService.convertLeadToStudent(id, body);
   }
 
-  @Post('placement-test')
+}
+
+@Controller('students')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class PlacementTestController {
+  constructor(private readonly enrollmentService: EnrollmentService) {}
+
+  @Post(':id/placement-tests')
   @Roles('ADMIN', 'MANAGER', 'STAFF', 'TEACHER')
-  recordPlacementTest(@Body() body: any) {
-    return this.enrollmentService.recordPlacementTest(body);
+  recordPlacementTest(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreatePlacementTestDto,
+    @Request() req: RequestWithUser,
+  ) {
+    return this.enrollmentService.recordPlacementTest(id, body, req.user);
+  }
+
+  @Get(':id/placement-tests')
+  @Roles('ADMIN', 'MANAGER', 'STAFF', 'TEACHER')
+  getPlacementTests(@Param('id', ParseIntPipe) id: number, @Request() req: RequestWithUser) {
+    return this.enrollmentService.getPlacementTests(id, req.user);
   }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Copy, Info, Send, X } from 'lucide-react';
 import { Button } from '../../design-system/components/ui/Button';
 import { Card } from '../../design-system/components/ui/Card';
@@ -26,14 +26,8 @@ const ClassFeedbackModal: React.FC<ClassFeedbackModalProps> = ({
   onCopySuccess,
 }) => {
   const titleId = useId();
-  const [remark, setRemark] = useState('');
+  const [remark, setRemark] = useState(() => lesson?.lessonFeedback || '');
   const [isSending, setIsSending] = useState(false);
-
-  useEffect(() => {
-    if (isOpen && lesson) {
-      setRemark(lesson.lessonFeedback || '');
-    }
-  }, [isOpen, lesson]);
 
   if (!isOpen || !lesson) return null;
 

@@ -1,6 +1,6 @@
 # Story 2.3: Ghi nhận Placement Test & gợi ý cấp độ (FR12)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -21,15 +21,15 @@ So that tư vấn chốt lớp đúng trình độ và giảm sai lệch phân l
 
 ## Tasks / Subtasks
 
-- [ ] **Backend** (AC: 3, 5, 6)
-  - [ ] Model Prisma `PlacementTest` (hoặc tên tương đương): `studentId`, scores, `recommendedLevelId`, `testDate`.
-  - [ ] `POST /students/:id/placement-tests` + `GET` lịch sử nếu cần.
-  - [ ] Service: lookup `Level` từ `system-config` / bảng level.
-- [ ] **Frontend** (AC: 2, 4)
-  - [ ] Tab hoặc section trong `StudentDetail.tsx` (hoặc màn riêng) — form điểm + hiển thị kết quả gợi ý.
-  - [ ] Component form có thể tách `PlacementTestForm` để test dễ.
-- [ ] **Kiểm thử**
-  - [ ] Vài bộ điểm mẫu → đúng level gợi ý; biên min/max.
+- [x] **Backend** (AC: 3, 5, 6)
+  - [x] Model Prisma `PlacementTest`: student, skill scores, total, `recommendedLevelId`, branch/program, test date.
+  - [x] Student-scoped POST + GET history endpoints with validation and authorization.
+  - [x] Lookup configured active Level bounds; reject overlapping ranges.
+- [x] **Frontend** (AC: 2, 4)
+  - [x] Student detail form validates scores and displays persisted recommendations.
+  - [x] Kept the form in the existing page; a separate component was not needed.
+- [x] **Kiểm thử**
+  - [x] Boundary, no-match, persistence, remapping and browser form submission verified.
 
 ## Dev Notes
 
@@ -49,4 +49,19 @@ So that tư vấn chốt lớp đúng trình độ và giảm sai lệch phân l
 
 ### Completion Notes List
 
+- D1 implementation adds persisted placement tests and student-scoped POST/GET endpoints with branch and teacher-assignment checks.
+- Placement totals map to inclusive `Level.minPlacementScore` / `Level.maxPlacementScore` ranges. No score ranges were invented or seeded; configure both bounds on each active Level before using recommendations.
+- Verification: Prisma validate/generate, API build, API Jest suite, focused enrollment tests, and frontend production build. Detailed handoff: `.github/modernize/rearchitecture/artifacts/D1-backend.md`.
+- D6 isolated PostgreSQL/API and browser checks pass persistence, configured-bound remapping, and form submission. Story is in review; configure operational Level bounds and obtain BA/PO sign-off before `done`.
+
 ### File List
+
+- `pms-eng-api/prisma/schema.prisma`
+- `pms-eng-api/prisma/migrations/20261023000000_placement_tests/migration.sql`
+- `pms-eng-api/src/modules/categories/categories.service.ts`
+- `pms-eng-api/src/modules/enrollment/dto/create-placement-test.dto.ts`
+- `pms-eng-api/src/modules/enrollment/enrollment.controller.ts`
+- `pms-eng-api/src/modules/enrollment/enrollment.module.ts`
+- `pms-eng-api/src/modules/enrollment/enrollment.service.ts`
+- `pms-eng-api/src/modules/enrollment/enrollment.service.spec.ts`
+- `dreamhigh-web/src/pages/CRM/StudentApiDetailPage.tsx`

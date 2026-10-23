@@ -182,7 +182,7 @@ export function apiConflictDetail(error: unknown): ScheduleConflictDetail | null
 
 /** Tải file CSV từ nội dung text (không dùng thư viện ngoài). */
 export function downloadCsv(filename: string, csvContent: string): void {
-  const blob = new Blob([`﻿${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

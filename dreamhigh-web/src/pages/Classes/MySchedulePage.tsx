@@ -33,7 +33,7 @@ const MySchedulePage: React.FC = () => {
     enabled: Boolean(from) && Boolean(to) && from < to,
   });
 
-  const sessions: SessionView[] = data?.items ?? [];
+  const sessions = useMemo<SessionView[]>(() => data?.items ?? [], [data?.items]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, SessionView[]>();
