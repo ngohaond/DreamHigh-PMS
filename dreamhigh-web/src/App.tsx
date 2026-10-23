@@ -23,6 +23,7 @@ import TeachingHoursPage from './pages/Reports/TeachingHoursPage';
 import CoursesHubPage from './pages/Courses/CoursesHubPage';
 import CourseManagement from './pages/Courses/CourseManagement';
 import CurriculumManagement from './pages/Courses/CurriculumManagement';
+import { AttendanceAlertsPage } from './pages/AttendanceAlertsPage';
 
 // Initialize React Query Client
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ function AppRoutes() {
           <Route path="/classes/schedule" element={<ClassScheduleManagement />} />
           <Route path="/classes/my-schedule" element={<MySchedulePage />} />
           <Route path="/classes/:id" element={<ClassDetailsPage />} />
+          <Route path="/alerts/attendance" element={<AttendanceAlertsPage />} />
           <Route path="/reports/teaching-hours" element={<TeachingHoursPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           {/* Redirect authorized users from root to dashboard */}

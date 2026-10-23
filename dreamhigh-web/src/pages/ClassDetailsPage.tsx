@@ -7,10 +7,16 @@ import { Button } from '../design-system/components/ui/Button';
 import { Card } from '../design-system/components/ui/Card';
 import { Tabs } from '../design-system/components/ui/Tabs';
 import { apiClient } from '../services/apiClient';
+import { ResultsTab } from './Classes/ResultsTab';
+import { CreateExamModal } from './Classes/CreateExamModal';
+import { GradeInputModal } from './Classes/GradeInputModal';
+import type { Exam } from '../types/phaseC';
 
 export const ClassDetailsPage: React.FC = () => {
   const { id: classCode } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isCreateExamOpen, setIsCreateExamOpen] = useState(false);
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
 
   const { data: classData, isLoading, isError, refetch } = useQuery({
     queryKey: ['class', classCode],
@@ -72,15 +78,23 @@ export const ClassDetailsPage: React.FC = () => {
         }
       />
 
-      <Tabs 
+      <Tabs
         items={tabs}
         activeKey={activeTab}
         onChange={setActiveTab}
         className="mb-10"
       />
 
-      {/* Detail Bento Grid */}
-      <div className="grid grid-cols-12 gap-8">
+      {/* Tab Content */}
+      {activeTab === 'results' && classCode ? (
+        <ResultsTab
+          classId={cls.id}
+          onCreateExam={() => setIsCreateExamOpen(true)}
+          onViewExam={(exam) => setSelectedExam(exam)}
+        />
+      ) : (
+        /* Detail Bento Grid */
+        <div className="grid grid-cols-12 gap-8">
         
         {/* Main Summary Section */}
         <div className="col-span-8 space-y-8">
@@ -193,6 +207,28 @@ export const ClassDetailsPage: React.FC = () => {
         </div>
 
       </div>
+      )}
+
+      {/* Modals */}
+      {classCode && (
+        <>
+          <CreateExamModal
+            isOpen={isCreateExamOpen}
+            onClose={() => setIsCreateExamOpen(false)}
+            classId={cls.id}
+          />
+          <GradeInputModal
+            isOpen={!!selectedExam}
+            onClose={() => setSelectedExam(null)}
+            exam={selectedExam}
+            students={cls.enrollments?.map((e: any) => ({
+              id: e.student.id,
+              fullName: e.student.fullName,
+              studentCode: e.student.studentCode,
+            })) || []}
+          />
+        </>
+      )}
     </AppLayout>
   );
 };
