@@ -1,0 +1,94 @@
+name: dreamhigh-pms-local
+
+x-database-environment: &database-environment
+  DATABASE_URL: postgresql://dreamhigh:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/dreamhigh_pms?schema=public
+  DIRECT_URL: postgresql://dreamhigh:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/dreamhigh_pms?schema=public
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dreamhigh
+      POSTGRES_DB: dreamhigh_pms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  init:
+    image: dreamhigh-pms-local-api:latest
+    restart: "no"
+    environment:
+      <<: *database-environment
+      # The password is inserted into a URI; validate URL-safe characters before migrations.
+      LOCAL_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@dreamhigh.local}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?Set BOOTSTRAP_ADMIN_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - sh
+      - -ec
+      - |
+        node -e 'if (!/^[A-Za-z0-9_-]{32,}$$/.test(process.env.LOCAL_POSTGRES_PASSWORD || "")) { console.error("POSTGRES_PASSWORD must contain at least 32 URL-safe characters: A-Z a-z 0-9 _ -"); process.exit(1); }'
+        npm run prisma:migrate:deploy
+        node scripts/bootstrap-local.cjs
+
+  api:
+    image: dreamhigh-pms-local-api:latest
+    build:
+      context: ./pms-eng-api
+    init: true
+    restart: unless-stopped
+    environment:
+      <<: *database-environment
+      NODE_ENV: production
+      PORT: "3000"
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      CORS_ORIGINS: https://localhost
+      TRUST_PROXY_HOPS: "1"
+      APP_TIMEZONE: Asia/Ho_Chi_Minh
+    depends_on:
+      db:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    command: [npm, run, start:prod]
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  web:
+    image: dreamhigh-pms-local-web:latest
+    build:
+      context: ./dreamhigh-web
+      dockerfile: Dockerfile.local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1/api/health/ready']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+volumes:
+  postgres-data:
