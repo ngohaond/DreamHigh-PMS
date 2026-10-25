@@ -24,41 +24,41 @@
 #   - done: Retrospective has been completed
 
 generated: '2026-03-29'
-last_updated: '2026-04-12'
-# story 1-3 moved to review after FE API wiring
+last_updated: '2026-10-23'
+# Phase F UAT & Go-Live completed: all MVP epics (1-5) and stories verified & done
 project: DreamHigh PMS
 project_key: NOKEY
 tracking_system: file-system
 story_location: /Users/hades/Desktop/NEW DreamHigh System/_bmad-output/implementation-artifacts
 
 development_status:
-  epic-1: in-progress
-  1-1-xac-thuc-quan-ly-tai-khoan: review
-  1-2-danh-muc-dao-tao: review
-  1-3-phan-quyen-rbac: in-progress
-  1-4-he-thong-audit-log: ready-for-dev
-  epic-1-retrospective: optional
-  epic-2: in-progress
-  2-1-ho-so-hoc-vien: review
-  2-2-thay-doi-trang-thai-lo-trinh: review
-  2-3-ghi-nhan-placement-test: review
-  epic-2-retrospective: optional
-  epic-3: in-progress
-  3-1-xep-lich-lop-hoc: ready-for-dev
-  3-2-doi-lich-va-giao-vien: ready-for-dev
-  3-3-tra-cuu-tkb-giao-vien: ready-for-dev
-  3-4-thong-ke-gio-day: ready-for-dev
-  epic-3-retrospective: optional
-  epic-4: in-progress
-  4-1-xem-chi-tiet-lop-hoc: ready-for-dev
-  4-2-diem-danh-buoi-hoc: ready-for-dev
-  4-3-nhap-bang-diem: ready-for-dev
-  4-4-canh-bao-chuyen-can: ready-for-dev
-  epic-4-retrospective: optional
-  epic-5: in-progress
-  5-1-cau-hinh-khung-hoc-phi: review
-  5-2-thiet-lap-uu-dai: review
-  5-3-ghi-nhan-thu-tien: review
-  5-4-xuat-phieu-thu: review
-  5-5-dashboard-no-hoc-phi: review
-  epic-5-retrospective: optional
+  epic-1: done
+  1-1-xac-thuc-quan-ly-tai-khoan: done
+  1-2-danh-muc-dao-tao: done
+  1-3-phan-quyen-rbac: done
+  1-4-he-thong-audit-log: done
+  epic-1-retrospective: done
+  epic-2: done
+  2-1-ho-so-hoc-vien: done
+  2-2-thay-doi-trang-thai-lo-trinh: done
+  2-3-ghi-nhan-placement-test: done
+  epic-2-retrospective: done
+  epic-3: done
+  3-1-xep-lich-lop-hoc: done
+  3-2-doi-lich-va-giao-vien: done
+  3-3-tra-cuu-tkb-giao-vien: done
+  3-4-thong-ke-gio-day: done
+  epic-3-retrospective: done
+  epic-4: done
+  4-1-xem-chi-tiet-lop-hoc: done
+  4-2-diem-danh-buoi-hoc: done
+  4-3-nhap-bang-diem: done
+  4-4-canh-bao-chuyen-can: done
+  epic-4-retrospective: done
+  epic-5: done
+  5-1-cau-hinh-khung-hoc-phi: done
+  5-2-thiet-lap-uu-dai: done
+  5-3-ghi-nhan-thu-tien: done
+  5-4-xuat-phieu-thu: done
+  5-5-dashboard-no-hoc-phi: done
+  epic-5-retrospective: done

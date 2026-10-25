@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +9,12 @@ import { StudentStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateStudentStatusDto } from './dto/update-student-status.dto';
 import { canTransition, getAllowedTargets } from './state-machine/student-status.machine';
+
+export type StudentsAuthUser = {
+  userId: number;
+  roles: string[];
+  branchIds: number[];
+};
 
 function normalizePhone(phone: string | undefined | null): string {
   if (!phone) return '';
@@ -17,7 +24,11 @@ function normalizePhone(phone: string | undefined | null): string {
 const studentDetailInclude = {
   parent: true,
   classEnrollments: {
-    include: { trainingClass: true },
+    include: {
+      trainingClass: {
+        include: { sessions: { select: { teacherId: true } } },
+      },
+    },
   },
   grades: {
     include: { exam: true },
@@ -35,13 +46,33 @@ const studentDetailInclude = {
 export class StudentsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(query?: any) {
+  async findAll(query?: any, user?: StudentsAuthUser) {
     const { branchId, search } = query || {};
+    const parsedBranchId =
+      branchId != null && branchId !== '' && !Number.isNaN(Number(branchId))
+        ? Number(branchId)
+        : undefined;
+
+    let branchCondition: any = {};
+
+    if (user && !user.roles.includes('ADMIN')) {
+      const allowed = user.branchIds ?? [];
+      if (parsedBranchId != null) {
+        if (!allowed.includes(parsedBranchId)) {
+          throw new ForbiddenException('Bạn không có quyền truy cập học viên ở chi nhánh này');
+        }
+        branchCondition = { classEnrollments: { some: { trainingClass: { branchId: parsedBranchId } } } };
+      } else {
+        branchCondition = { classEnrollments: { some: { trainingClass: { branchId: { in: allowed } } } } };
+      }
+    } else if (parsedBranchId != null) {
+      branchCondition = { classEnrollments: { some: { trainingClass: { branchId: parsedBranchId } } } };
+    }
 
     return this.prisma.student.findMany({
       where: {
         AND: [
-          branchId ? { classEnrollments: { some: { trainingClass: { branchId } } } } : {},
+          branchCondition,
           search
             ? {
                 OR: [
@@ -64,12 +95,40 @@ export class StudentsService {
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, user?: StudentsAuthUser) {
     const student = await this.prisma.student.findUnique({
       where: { id },
       include: studentDetailInclude,
     });
     if (!student) throw new NotFoundException('Học viên không tồn tại');
+
+    if (user && !user.roles.includes('ADMIN')) {
+      const allowed = user.branchIds ?? [];
+      const studentBranches = (student.classEnrollments ?? [])
+        .map((ce) => ce.trainingClass?.branchId)
+        .filter((b): b is number => b != null);
+
+      if (studentBranches.length === 0) {
+        throw new ForbiddenException('Bạn không có quyền xem học viên chưa thuộc chi nhánh');
+      }
+
+      if (user.roles.includes('TEACHER')) {
+        const teachesClass = (student.classEnrollments ?? []).some(
+          (ce) =>
+            ce.trainingClass?.teacherId === user.userId ||
+            ce.trainingClass?.sessions?.some((s) => s.teacherId === user.userId),
+        );
+        if (!teachesClass) {
+          throw new ForbiddenException('Bạn không có quyền xem thông tin học viên này');
+        }
+      } else {
+        const hasBranch = studentBranches.some((b) => allowed.includes(b));
+        if (!hasBranch) {
+          throw new ForbiddenException('Bạn không có quyền xem thông tin học viên thuộc cơ sở khác');
+        }
+      }
+    }
+
     return {
       ...student,
       allowedTransitions: getAllowedTargets(student.status),
@@ -130,7 +189,8 @@ export class StudentsService {
     });
   }
 
-  async update(id: number, data: any) {
+  async update(id: number, data: any, user?: StudentsAuthUser) {
+    await this.findOne(id, user);
     if (data?.status !== undefined) {
       throw new BadRequestException('Dùng PATCH /students/:id/status để đổi trạng thái lộ trình.');
     }
@@ -141,9 +201,8 @@ export class StudentsService {
     });
   }
 
-  async updateStatus(id: number, dto: UpdateStudentStatusDto) {
-    const student = await this.prisma.student.findUnique({ where: { id } });
-    if (!student) throw new NotFoundException('Học viên không tồn tại');
+  async updateStatus(id: number, dto: UpdateStudentStatusDto, user?: StudentsAuthUser) {
+    const student = await this.findOne(id, user);
 
     const from = student.status;
     const to = dto.targetStatus;
@@ -185,16 +244,15 @@ export class StudentsService {
     });
   }
 
-  async delete(id: number) {
-    const s = await this.prisma.student.findUnique({ where: { id } });
-    if (!s) throw new NotFoundException('Học viên không tồn tại');
+  async delete(id: number, user?: StudentsAuthUser) {
+    const s = await this.findOne(id, user);
     if (s.status === StudentStatus.DROPPED) {
-      return this.findOne(id);
+      return s;
     }
     return this.updateStatus(id, {
       targetStatus: StudentStatus.DROPPED,
       reason: 'Đánh dấu nghỉ học (admin)',
-    });
+    }, user);
   }
 
   // --- Parent management ---

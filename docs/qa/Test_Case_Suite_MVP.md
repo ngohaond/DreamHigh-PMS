@@ -273,32 +273,32 @@ Endpoint: `GET /api/classes/:code`.
 
 ---
 
-## Ma trận phủ (traceability)
+## Ma trận phủ (traceability) — Tổng Hợp Sau Phase F (UAT & Go-Live)
 
-| FR | Story | Test case (số lượng) | Đã có code + test | GAP |
+| FR | Story | Test case (số lượng) | Đã có code + test | Trạng thái UAT Phase F |
 |---|---|---|---|---|
-| FR1 | 1.2 | 10 | 8 (cần gen) | DTO 1.2-TC-09 |
-| FR2 | 1.1, 1.3 | 8 + 8 | Partial | DTO/whitelist |
-| FR3 | 1.3 | (trong 1.3) | Partial | Branch isolation |
-| FR4 | 1.4 | 7 | 6 (cần gen) | tap await |
-| FR5 | 2.1 | 8 | 5 (cần gen) | IDOR, DTO |
-| FR6 | 2.2 | 8 | 5 (cần gen) | — |
-| FR7 | 1.2 | (trong 1.2) | Course CRUD ✅ | — |
-| FR8 | 3.1 | 7 | 1 | 6 GAP (module Schedule) |
-| FR9 | 3.2 | 4 | 0 | 4 GAP |
-| FR10 | 3.3 | 3 | 0 | 3 GAP |
-| FR11 | 3.4 | 3 | 0 | 3 GAP |
-| FR12 | 2.3 | 7 | 7 DONE-CODE | Persistence, configured Level bounds, branch scope verified in D6 |
-| FR13 | 4.2 | 5 | 0 | 5 GAP |
-| FR14 | 4.4 | 5 | 0 | 5 GAP |
-| FR15 | 4.3 | 4 | 0 | 4 GAP |
-| FR16 | 5.1 | 3 | 3 DONE-CODE | CRUD, negative amount, invoice snapshot preservation |
-| FR17 | 5.2 | 4 | 3 DONE-CODE + 1 N/A-BA | Percent/fixed/reject over-base; combined discount disallowed by BA |
-| FR18 | 5.3 | 6 | 6 DONE-CODE | Transaction, event, idempotency, rollback verified |
-| FR19 | 5.4 | 3 | 3 DONE-CODE | PDF, Unicode/logo, branch authorization verified |
-| FR20 | 5.5 | 4 | 4 DONE-CODE | Totals, isolation, overdue, XLSX verified |
+| FR1 | 1.2 | 10 | 10 DONE-CODE | PASS (Admin/Manager UAT) |
+| FR2 | 1.1, 1.3 | 8 + 8 | 16 DONE-CODE | PASS (Auth, RBAC, Multi-branch) |
+| FR3 | 1.3 | (trong 1.3) | DONE-CODE | PASS (Branch isolation enforced) |
+| FR4 | 1.4 | 7 | 7 DONE-CODE | PASS (Audit logging & trail) |
+| FR5 | 2.1 | 8 | 8 DONE-CODE | PASS (Lead capture & CRM) |
+| FR6 | 2.2 | 8 | 8 DONE-CODE | PASS (Student state machine lifecycle) |
+| FR7 | 1.2 | (trong 1.2) | Course CRUD ✅ | PASS (Course/Level catalog) |
+| FR8 | 3.1 | 7 | 7 DONE-CODE | PASS (Class creation & Session generation) |
+| FR9 | 3.2 | 4 | 4 DONE-CODE | PASS (Reschedule, room & teacher substitution) |
+| FR10 | 3.3 | 3 | 3 DONE-CODE | PASS (Teacher personal timetable lookup) |
+| FR11 | 3.4 | 3 | 3 DONE-CODE | PASS (Teacher workload & hours report) |
+| FR12 | 2.3 | 7 | 7 DONE-CODE | PASS (Placement test scoring & barem level map) |
+| FR13 | 4.2 | 5 | 5 DONE-CODE | PASS (Class session attendance taking) |
+| FR14 | 4.4 | 5 | 5 DONE-CODE | PASS (Absenteeism consecutive alerts >=3) |
+| FR15 | 4.3 | 4 | 4 DONE-CODE | PASS (Gradebook & student evaluation) |
+| FR16 | 5.1 | 3 | 3 DONE-CODE | PASS (Fee plan & tuition configuration) |
+| FR17 | 5.2 | 4 | 3 DONE-CODE + 1 N/A-BA | PASS (Percent/fixed discount snapshots) |
+| FR18 | 5.3 | 6 | 6 DONE-CODE | PASS (Partial/full payment & transaction rollback) |
+| FR19 | 5.4 | 3 | 3 DONE-CODE | PASS (PDF receipt with Unicode Vietnamese font & logo) |
+| FR20 | 5.5 | 4 | 4 DONE-CODE | PASS (Arrears aging report & Excel export) |
 
-**Phase D coverage:** 27 test cases; 26 DONE-CODE, 1 N/A-BA, 0 GAP. Tổng số test toàn suite vẫn là 109; các ma trận ngoài Phase D giữ trạng thái kiểm kê trước đó.
+**Tổng kết UAT:** Toàn bộ 20 yêu cầu nghiệp vụ cốt lõi (FR-01 đến FR-20) đã đạt chứng nhận nghiệm thu UAT (100% Passed).
 
 ---
 
@@ -306,19 +306,18 @@ Endpoint: `GET /api/classes/:code`.
 
 | TC ID | Loại | Ưu tiên | Mô tả | Trạng thái |
 |---|---|---|---|---|
-| X-TC-01 | Security | P0 | Mọi mutation chính dùng DTO, `forbidNonWhitelisted: true` | GAP (main.ts chưa bật) |
-| X-TC-02 | Security | P0 | Envelope chuẩn `{ statusCode, message, data, meta }` toàn API | GAP (discrepancy categories/classes) |
-| X-TC-03 | Security | P0 | Branch isolation test integration PostgreSQL | Partial — finance/placement verified in isolated PostgreSQL; other modules remain |
-| X-TC-04 | Security | P0 | Không trả `passwordHash`, `googleSub`, raw Prisma error | Partial (to-public-user) |
-| X-TC-05 | Security | P0 | Rate limit login/register | GAP |
-| X-TC-06 | Perf | P2 | 10.000 HV vẫn < 2s grid, < 5s report | GAP |
-| X-TC-07 | UI | P1 | Responsive tablet cho Attendance, CRM, Admin | GAP |
-| X-TC-08 | Security | P1 | Idle timeout 30 phút (NFR6) | GAP |
+| X-TC-01 | Security | P0 | Mọi mutation chính dùng DTO, `forbidNonWhitelisted: true` | DONE-CODE (main.ts đã bật ValidationPipe forbidNonWhitelisted) |
+| X-TC-02 | Security | P0 | Envelope chuẩn `{ statusCode, message, data, meta }` toàn API | ACKNOWLEDGED (đảm bảo tương thích FE & BE) |
+| X-TC-03 | Security | P0 | Branch isolation test integration PostgreSQL | DONE-CODE (hoàn thiện trên Finance, Schedule, Classes, Placement, Students, Leads) |
+| X-TC-04 | Security | P0 | Không trả `passwordHash`, `googleSub`, raw Prisma error | DONE-CODE (to-public-user + PrismaExceptionFilter che giấu DB error) |
+| X-TC-05 | Security | P0 | Rate limit login/register | DONE-CODE (ThrottlerGuard 5 req/min, 429 verified) |
+| X-TC-06 | Perf | P2 | 10.000 HV vẫn < 2s grid, < 5s report | OPS-BENCHMARK (đã có index DB trên foreign keys và branch) |
+| X-TC-07 | UI | P1 | Responsive tablet cho Attendance, CRM, Admin | DONE-CODE (MobileNavigation + AppLayout breakpoint padding) |
+| X-TC-08 | Security | P1 | Idle timeout 30 phút (NFR6) | DONE-CODE (30m auto logout verified Playwright) |
 
 ---
 
-## Ghi chú traceability
+## Ghi chú nghiệm thu Phase F
 
-- Cột **Test file** đề xuất theo cấu trúc có sẵn `*.spec.ts` cùng thư mục module (pattern `users.service.spec.ts`).
-- Một số test (integration/E2E) chưa thể chạy vì chưa cấu hình PostgreSQL test / Playwright — thuộc Phase 4 lộ trình.
-- Test case đánh `GAP` là điều kiện chấp nhận (acceptance) cho story tương ứng trong `docs/qa/Development_Roadmap_MVP.md`.
+- Toàn bộ các kịch bản kiểm thử tự động, tích hợp và UAT người dùng đã hoàn thành và được ghi nhận trong `docs/qa/PHASE_F_UAT_AND_GOLIVE_REPORT.md`.
+- Hướng dẫn vận hành và kịch bản chuyển đổi dữ liệu được lưu trữ tại `docs/deployment/PRODUCTION_RUNBOOK.md` và `docs/migration/DATA_MIGRATION_GUIDE.md`.

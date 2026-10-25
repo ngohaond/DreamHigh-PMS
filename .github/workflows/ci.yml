@@ -76,6 +76,8 @@ jobs:
         run: node scripts/phase-d-integration.mjs
       - name: Verify unauthenticated routes are protected
         run: node scripts/phase-d-auth-smoke.mjs
+      - name: Run Phase F automated UAT persona smoke test
+        run: node scripts/phase-f-uat-smoke.mjs
       - name: Upload backend coverage
         if: always()
         uses: actions/upload-artifact@v4
